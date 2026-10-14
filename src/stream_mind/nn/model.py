@@ -1,9 +1,9 @@
 """StreamLM: 설계안의 하이브리드 백본을 그대로 옮긴 소형 언어 모델.
 
 - 층 대부분은 Gated DeltaNet(선형 어텐션), 일부만 일반 어텐션 (기본 3:1, ``pattern="LLLA"``).
-- 일반 어텐션은 최근 ``window``개 토큰과 처음 ``sinks``개 토큰(attention sink)만 본다. 위치 인코딩을
-  쓰지 않는다(NoPE). 순서 정보는 선형 층과 짧은 합성곱이 준다(Jamba와 같은 선택). 그래서 끝없는
-  스트림에서도 위치 번호가 학습 범위를 넘는 문제가 생기지 않고, 학습과 추론이 같은 마스크를 쓴다.
+- 일반 어텐션은 최근 ``window``개 토큰과 처음 ``sinks``개 토큰(attention sink)만 본다. 위치는
+  캐시 안에서 다시 매긴다(StreamingLLM, RoPE). 끝없는 스트림에서도 위치 번호가
+  ``sinks + window``를 넘지 않고, 학습과 추론이 같은 규칙을 쓴다.
 - 상태(선형 층의 빠른 가중치 + 합성곱 꼬리 + sink KV + 윈도 KV)는 크기가 고정이다. 실행당 연산과
   메모리가 세션 길이와 무관하고(G5), 상태 복사(포크)가 싸다(핵심 모듈 3).
 - 모든 선형 사상은 ``LoRALinear``라 어댑터를 얹을 수 있다.
@@ -37,7 +37,7 @@ class StreamLMConfig:
     d_model: int = 192
     n_heads: int = 4
     head_dim: int = 48
-    pattern: str = "LLLA"  # L: Gated DeltaNet, A: sink+윈도 어텐션
+    pattern: str = "LALA"  # L: Gated DeltaNet, A: sink+윈도 어텐션
     mlp_mult: float = 3.0
     window: int = 256
     sinks: int = 8
@@ -105,7 +105,27 @@ class GatedDeltaNet(nn.Module):
         return self.out(o.reshape(b, t, self.h * self.d)), new
 
 
+def rope(x: torch.Tensor, positions: torch.Tensor, base: float = 10000.0) -> torch.Tensor:
+    """회전 위치 인코딩. x (..., n, d), positions (n,) 또는 (..., n)."""
+    d = x.shape[-1]
+    half = d // 2
+    freqs = base ** (-torch.arange(half, device=x.device, dtype=torch.float32) / half)
+    ang = positions.to(torch.float32)[..., None] * freqs
+    cos, sin = ang.cos().to(x.dtype), ang.sin().to(x.dtype)
+    x1, x2 = x[..., :half], x[..., half:2 * half]
+    out = torch.cat([x1 * cos - x2 * sin, x1 * sin + x2 * cos], -1)
+    return torch.cat([out, x[..., 2 * half:]], -1) if d % 2 else out
+
+
 class SinkWindowAttention(nn.Module):
+    """sink + 슬라이딩 윈도 어텐션. 위치는 캐시 안에서 다시 매긴다 (StreamingLLM).
+
+    키는 회전 전 값으로 캐시에 둔다. 윈도 안의 키와 질의는 실제 거리 그대로 회전한다(기준점은 윈도
+    시작이라 숫자가 커지지 않는다). sink 키는 윈도 바로 앞에 있는 것처럼 질의 위치를
+    ``min(p, sinks + window - 1)``로 다시 매긴다. 세션이 아무리 길어도 위치 번호는
+    ``sinks + window``를 넘지 않는다.
+    """
+
     def __init__(self, cfg: StreamLMConfig) -> None:
         super().__init__()
         h, d = cfg.n_heads, cfg.head_dim
@@ -132,11 +152,20 @@ class SinkWindowAttention(nn.Module):
                           torch.arange(pos, pos + t, device=dev)])
         qpos = torch.arange(pos, pos + t, device=dev)
         rel = qpos[:, None] - kpos[None, :]
-        mask = (rel >= 0) & ((kpos[None, :] < self.sinks) | (rel < self.window))
-        o = F.scaled_dot_product_attention(q, keys, vals, attn_mask=mask)
+        is_sink = kpos < self.sinks
+        mask = (rel >= 0) & (is_sink[None, :] | (rel < self.window))
+        scale = self.d ** -0.5
+        # 윈도 부분: 기준점(윈도 시작)부터의 실제 위치
+        origin = pos - nw
+        win = rope(q, qpos - origin) @ rope(keys, kpos - origin).transpose(-1, -2)
+        # sink 부분: sink는 0..sinks-1, 질의는 윈도 바로 뒤로 다시 매긴 위치
+        q_sink = torch.clamp(qpos, max=self.sinks + self.window - 1)
+        snk = rope(q, q_sink) @ rope(keys, kpos).transpose(-1, -2)
+        scores = torch.where(is_sink[None, :], snk, win) * scale
+        scores = scores.masked_fill(~mask, float("-inf"))
+        o = torch.softmax(scores, -1) @ vals
         # 다음 조각을 위해 sink는 처음 sinks개, 윈도는 최근 window-1개만 남긴다 (크기 고정).
         new_pos = pos + t
-        is_sink = kpos < self.sinks
         keep_win = (~is_sink) & (kpos > new_pos - self.window)
         new = {"ks": keys[:, :, is_sink], "vs": vals[:, :, is_sink],
                "kw": keys[:, :, keep_win], "vw": vals[:, :, keep_win], "pos": new_pos}
@@ -208,6 +237,13 @@ class StreamLM(nn.Module):
                                            nn.Linear(cfg.d_model, cfg.d_model))
             nn.init.zeros_(self.time_proj[-1].weight)
             nn.init.zeros_(self.time_proj[-1].bias)
+        # GPT-2식 초기화: 잔차로 더해지는 출력 사상을 작게 둬서 임베딩(토큰 정체)이 묻히지 않게 한다.
+        resid_std = 0.02 / math.sqrt(2 * len(cfg.pattern))
+        for blk in self.blocks:
+            for name, mod in blk.named_modules():
+                if isinstance(mod, LoRALinear):
+                    std = resid_std if name.endswith(("out", "down")) else 0.02
+                    nn.init.normal_(mod.base.weight, std=std)
 
     @property
     def device(self):
