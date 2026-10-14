@@ -105,3 +105,22 @@ def test_utf8_split_across_ticks_is_not_corrupted():
         head, tail = split_incomplete_utf8(b[:cut])
         rest = tail + b[cut:]
         assert bytes(head).decode() + bytes(rest).decode() == "잡담 응"
+
+
+def test_pretrain_rows_are_consistent():
+    from stream_mind.data.pretrain import build
+
+    rows = build(200, seed=1)
+    tok = ByteTokenizer()
+    for r in rows:
+        ep = encode_episode(r, tok)
+        assert any(ep.mask) and not ep.branches
+        text = "".join(t for t, _ in r["segments"])
+        assert text.startswith("<bos>")
+    # 정답 조각이 문맥에서 맞게 만들어졌는지 몇 개 확인
+    for r in rows:
+        segs = r["segments"]
+        for (p, _), (a, out) in zip(segs, segs[1:]):
+            if out and p.endswith("=") and "거꾸로" not in p:
+                expr = p.rsplit("\n", 1)[-1].replace("<bos>", "")[:-1]
+                assert str(eval(expr)) == a.strip()
