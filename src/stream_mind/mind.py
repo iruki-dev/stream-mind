@@ -296,6 +296,8 @@ class Mind:
 
     def _dispatch_intents(self) -> None:
         intents, self.intents = self.intents, []
+        # 결론을 냈다는 것은 진전이다. 사고 예산은 "진전 없이" 도는 것을 막기 위한 것이므로 다시 채운다.
+        self.budget_left = self.cfg.think_budget_tokens
         for call in intents:
             self.concluded.add(call.signature())
             _, cost = self.backend.fork(self.state)

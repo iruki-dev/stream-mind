@@ -27,6 +27,8 @@ def test_teacher_solves_dialogue_without_leaks(kind, mode):
     res = run_scenario(sc, lambda roles: TeacherBackend(roles), MindConfig(**MIND))
     assert res.success, (res.sent, sc.expected)
     assert find_leaks(res.transcript) == []
+    # 답을 보낸 뒤 사고를 닫고 멈추는 장면까지 기록돼야 한다.
+    assert res.transcript.text().endswith("<think></think>\n")
 
 
 @pytest.mark.parametrize("kind", ["cat", "inject", "delete"])

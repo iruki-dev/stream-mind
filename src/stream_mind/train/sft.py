@@ -21,7 +21,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import torch
 import torch.nn.functional as F
@@ -134,7 +134,8 @@ def batch_loss(model: StreamLM, eps: list[Episode], bptt: int = 256,
 def train(model: StreamLM, episodes: list[Episode], steps: int, lr: float = 2e-3,
           bptt: int = 256, episodes_per_step: int = 4, seed: int = 0, log_every: int = 25,
           params: Iterable[torch.nn.Parameter] | None = None, log=print,
-          weight_decay: float = 0.01, warmup: int = 50) -> list[float]:
+          weight_decay: float = 0.01, warmup: int = 50,
+          checkpoint: Callable[[int], None] | None = None, save_every: int = 0) -> list[float]:
     rng = random.Random(seed)
     params = list(params) if params is not None else list(model.parameters())
     opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay, betas=(0.9, 0.95))
@@ -168,6 +169,10 @@ def train(model: StreamLM, episodes: list[Episode], steps: int, lr: float = 2e-3
         sched.step()
         opt.zero_grad(set_to_none=True)
         history.append(tot / max(1, cnt))
+        if checkpoint is not None and save_every and (step + 1) % save_every == 0:
+            model.eval()
+            checkpoint(step + 1)
+            model.train()
         if log and (step % log_every == 0 or step == steps - 1):
             recent = history[-log_every:]
             log(f"step {step} loss {sum(recent) / len(recent):.4f} "
@@ -211,6 +216,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--window", type=int, default=256)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--save-every", type=int, default=250)
     args = ap.parse_args(argv)
     torch.manual_seed(args.seed)
     torch.set_num_threads(args.threads)
@@ -235,7 +241,8 @@ def main(argv: list[str] | None = None) -> int:
             lf.write(msg + "\n")
             lf.flush()
 
-        train(model, train_eps, args.steps, args.lr, args.bptt, args.batch, args.seed, log=log)
+        train(model, train_eps, args.steps, args.lr, args.bptt, args.batch, args.seed, log=log,
+              checkpoint=lambda step: model.save(args.out), save_every=args.save_every)
         log(f"검증 손실 {evaluate(model, held, args.bptt):.4f}")
     model.save(args.out)
     return 0

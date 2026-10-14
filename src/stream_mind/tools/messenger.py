@@ -24,7 +24,7 @@ _CONFIRM = re.compile(r"^/(confirm|deny)\s+(\d+)\s*$")
 @dataclass(order=True)
 class Message:
     t: float
-    id: int = field(compare=False)
+    id: int  # 같은 시각이면 보낸 순서대로
     text: str = field(compare=False)
     sender: str = field(default="user", compare=False)
     authenticated: bool = field(default=True, compare=False)

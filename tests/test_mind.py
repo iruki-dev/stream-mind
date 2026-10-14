@@ -242,3 +242,18 @@ def test_idle_learning_runs_only_when_idle_and_yields_to_input():
     Mind(ScriptedBackend([]), [m2], SimClock(), MindConfig(idle_after=10.0),
          idle=learner2).run(until=3.5)
     assert learner2.rounds == 0
+
+
+def test_budget_refills_after_each_conclusion():
+    """질문이 여러 개 쌓여 있으면 결론을 낼 때마다 예산이 다시 차서 끝까지 답한다."""
+    clock = SimClock()
+    m = Messenger(reply_sla=1e9)
+    for i in range(6):
+        m.deliver(f"q{i}", at=0.0)
+    thoughts = [f"답 {i} " + "생각" * 20 + f" <call tool=messenger op=send>a{i}</call>"
+                for i in range(6)]
+    backend = ScriptedBackend(thoughts)
+    mind = Mind(backend, [m], clock, MindConfig(think_tokens_per_tick=64, think_budget_tokens=40))
+    mind.run(until=5.0)
+    assert [t for _, t in m.sent] == [f"a{i}" for i in range(6)]
+    assert mind.stats.unresolved == 0

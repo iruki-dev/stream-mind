@@ -147,3 +147,13 @@ def test_snake_eats_and_dies():
     while not term:
         s2, _, term = m.step(s2, "R")
     assert not s2.alive and m.heuristic(s2) == -1000.0
+
+
+def test_messages_at_the_same_time_keep_their_order():
+    m = Messenger()
+    texts = [f"m{i}" for i in range(12)]
+    for t in texts:
+        m.deliver(t, at=0.0)
+    m.poll(0.0)
+    res = m.invoke(ToolCall("messenger", "read"), 0.0)
+    assert [line.split(": ", 1)[1] for line in res.text.splitlines()] == texts

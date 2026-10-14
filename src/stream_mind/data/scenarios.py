@@ -278,8 +278,9 @@ def run_scenario(sc: Scenario, make_backend: Callable[[dict[str, str]], Backend]
                         cid = text.split("#", 1)[1].split(":", 1)[0]
                         messenger.deliver(f"/confirm {cid}", at=clock.now() + 0.3)
             replies = [t for _, t in messenger.sent if not t.startswith("확인 요청")]
+            # 답을 보낸 뒤 사고를 마칠 때까지 기다린다. 답 다음에 멈추는 법도 학습 재료다.
             if sc.expected is not None and replies and replies[-1] == sc.expected \
-                    and not messenger.pending:
+                    and not messenger.pending and mind.converged and not mind.intents:
                 return True
             return False
 
