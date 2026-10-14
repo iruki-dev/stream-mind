@@ -27,6 +27,23 @@ from .text_backend import TextState, TextStreamBackend
 class ModelCursor:
     st: StreamState
     logits: torch.Tensor  # (V,)
+    pending: list[int] | None = None  # 아직 글자가 덜 끝난 바이트 (다음 조각에서 이어 디코드)
+
+
+def split_incomplete_utf8(ids: list[int]) -> tuple[list[int], list[int]]:
+    """끝에 덜 끝난 UTF-8 글자가 있으면 떼어 낸다. (완성된 앞부분, 덜 끝난 꼬리)."""
+    n = len(ids)
+    for back in range(1, min(4, n) + 1):
+        b = ids[n - back]
+        if b >= 256:
+            return ids, []
+        if b & 0xC0 == 0x80:  # 이어지는 바이트
+            continue
+        need = 2 if b & 0xE0 == 0xC0 else 3 if b & 0xF0 == 0xE0 else 4 if b & 0xF8 == 0xF0 else 1
+        if back < need:
+            return ids[: n - back], ids[n - back:]
+        return ids, []
+    return ids, []
 
 
 class TorchBackend(TextStreamBackend):
@@ -78,7 +95,7 @@ class TorchBackend(TextStreamBackend):
         return ModelCursor(st, torch.zeros(self.tok.vocab_size))
 
     def _copy_model_state(self, cur: ModelCursor) -> ModelCursor:
-        return ModelCursor(cur.st.clone(), cur.logits.clone())
+        return ModelCursor(cur.st.clone(), cur.logits.clone(), list(cur.pending or []))
 
     @torch.no_grad()
     def _run(self, cur: ModelCursor, ids: list[int]) -> None:
@@ -100,7 +117,7 @@ class TorchBackend(TextStreamBackend):
         cur: ModelCursor = state.model
         ids: list[int] = []
         finished = False
-        used = len(self.tok.encode(state.thought))
+        used = len(self.tok.encode(state.thought)) + len(cur.pending or [])
         for _ in range(max_tokens):
             if used + len(ids) >= self.max_thought_tokens:
                 finished = True  # 사고 길이 상한
@@ -115,10 +132,15 @@ class TorchBackend(TextStreamBackend):
             if nxt == self._end_call:
                 break  # 결론을 바로 돌려준다
         measured = time.perf_counter() - t0
+        n = len(ids)
         if ids:
-            self._spt = 0.8 * self._spt + 0.2 * (measured / len(ids)) if self.fixed_spt is None \
+            self._spt = 0.8 * self._spt + 0.2 * (measured / n) if self.fixed_spt is None \
                 else self.fixed_spt
-        return self.tok.decode(ids), len(ids), finished, self._cost(measured, len(ids), 0)
+        # 한 글자가 두 조각에 걸치면 따로 디코드되어 깨진다. 덜 끝난 바이트는 다음 조각으로 넘긴다.
+        ids = (cur.pending or []) + ids
+        done, tail = (ids, []) if finished else split_incomplete_utf8(ids)
+        cur.pending = tail
+        return self.tok.decode(done), n, finished, self._cost(measured, n, 0)
 
     def _pick(self, logits: torch.Tensor, temperature: float) -> int:
         if temperature <= 0:

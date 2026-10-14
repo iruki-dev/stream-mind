@@ -145,3 +145,48 @@ def rl_train(model: StreamLM, cfg: RLConfig, sft_episodes: list[Episode] | None 
         log(f"rl {it} frames {frames} score {entry.mean_score:.2f} reward {entry.mean_reward:.2f} "
             f"latency {entry.mean_latency:.2f} terms {n_terms} {entry.seconds:.0f}s")
     return history
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+    import sys
+
+    from .sft import load_episodes
+
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--init", required=True)
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--sft-data", nargs="*", default=[])
+    ap.add_argument("--iterations", type=int, default=40)
+    ap.add_argument("--group", type=int, default=4)
+    ap.add_argument("--seeds-per-iter", type=int, default=2)
+    ap.add_argument("--lr", type=float, default=3e-4)
+    ap.add_argument("--threads", type=int, default=4)
+    ap.add_argument("--seed", type=int, default=0)
+    args = ap.parse_args(argv)
+    torch.set_num_threads(args.threads)
+    torch.manual_seed(args.seed)
+    model = StreamLM.load(args.init)
+    sft = load_episodes(args.sft_data, ByteTokenizer()) if args.sft_data else None
+    cfg = RLConfig(iterations=args.iterations, group=args.group,
+                   seeds_per_iter=args.seeds_per_iter, lr=args.lr, seed=args.seed)
+    from pathlib import Path
+    log_path = Path(args.out).with_suffix(".log")
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("w") as lf:
+        def log(msg: str) -> None:
+            print(msg, flush=True)
+            lf.write(msg + "\n")
+            lf.flush()
+
+        rl_train(model, cfg, sft, log=log)
+    model.save(args.out)
+    print(f"저장: {args.out}")
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(main())

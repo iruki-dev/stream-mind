@@ -60,6 +60,17 @@ _TASKS = [
 ]
 
 
+QUESTIONS = {"arith", "reverse", "name_get", "recall", "cat", "delete", "tool"}
+
+
+def _kind_of(text: str) -> str:
+    text = re.sub(r"^아니[,\s]*", "", text)
+    for kind, rx in _TASKS:
+        if rx.search(text):
+            return kind
+    return "chat"
+
+
 def solve_arith(a: str, op: str, b: str) -> str:
     x, y = int(a), int(b)
     return str(x + y if op == "+" else x - y if op == "-" else x * y)
@@ -120,9 +131,11 @@ class TeacherBackend(TextStreamBackend):
         if role == "messenger" and ev.kind == "notification":
             mem.unread = True
         elif role == "messenger" and ev.kind == "result" and ev.trust == Trust.INSTRUCTION:
-            for line in ev.text.splitlines():
-                if ":" in line:
-                    self._instruction(mem, line.split(":", 1)[1].strip())
+            lines = [ln.split(":", 1)[1].strip() for ln in ev.text.splitlines() if ":" in ln]
+            # 한 묶음에 질문이 있으면 그 답만 보낸다. 잡담과 진술에는 따로 답하지 않는다.
+            has_question = any(_kind_of(t) in QUESTIONS for t in lines)
+            for text in lines:
+                self._instruction(mem, text, quiet=has_question)
         elif role == "terminal" and ev.kind == "result" and isinstance(ev.payload, int):
             mem.last_job = ev.payload
             if "pending_job" in mem.waiting:
@@ -152,7 +165,7 @@ class TeacherBackend(TextStreamBackend):
     def _observe_call(self, mem: TeacherMemory, rec: CallRecord) -> None:
         pass
 
-    def _instruction(self, mem: TeacherMemory, text: str) -> None:
+    def _instruction(self, mem: TeacherMemory, text: str, quiet: bool = False) -> None:
         if text.startswith("/"):
             return
         correction = text.startswith("아니")
@@ -172,13 +185,15 @@ class TeacherBackend(TextStreamBackend):
                 mem.queue.append(Pending("reply", g[0][::-1], f"{g[0]} 거꾸로 {g[0][::-1]}"))
             elif kind == "name_set":
                 mem.facts["이름"] = g[0]
-                mem.queue.append(Pending("reply", "알겠어", f"이름은 {g[0]}"))
+                if not quiet:
+                    mem.queue.append(Pending("reply", "알겠어", f"이름은 {g[0]}"))
             elif kind == "name_get":
                 ans = mem.facts.get("이름", "모르겠어")
                 mem.queue.append(Pending("reply", ans, f"이름은 {ans}"))
             elif kind == "remember":
                 mem.queue.append(Pending("notes_add", f"{g[0]}는 {g[1]}", "노트에 적는다"))
-                mem.queue.append(Pending("reply", "기억했어", "적었다"))
+                if not quiet:
+                    mem.queue.append(Pending("reply", "기억했어", "적었다"))
             elif kind == "recall":
                 if g[0] in mem.facts:
                     mem.queue.append(Pending("reply", mem.facts[g[0]], f"{g[0]}는 {mem.facts[g[0]]}"))
@@ -193,7 +208,8 @@ class TeacherBackend(TextStreamBackend):
             elif kind == "tool":
                 mem.queue.append(Pending("tool", (g[0], g[1]), f"{g[0]} 사용"))
             return
-        mem.queue.append(Pending("reply", "응", "잡담"))
+        if not quiet:
+            mem.queue.append(Pending("reply", "응", "잡담"))
 
     # 사고 ------------------------------------------------------------------------------
     def _call(self, role_or_tool: str, op: str, body: str) -> str:

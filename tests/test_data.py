@@ -95,3 +95,13 @@ def test_sft_learns_a_tiny_corpus():
     train(model, eps, steps=30, lr=3e-3, bptt=512, episodes_per_step=1, log=None, warmup=5)
     after = sum(episode_loss(model, e, 512, backward=False)[0] for e in eps)
     assert after < before * 0.6
+
+
+def test_utf8_split_across_ticks_is_not_corrupted():
+    from stream_mind.model.torch_backend import split_incomplete_utf8
+
+    b = list("잡담 응".encode())
+    for cut in range(len(b) + 1):
+        head, tail = split_incomplete_utf8(b[:cut])
+        rest = tail + b[cut:]
+        assert bytes(head).decode() + bytes(rest).decode() == "잡담 응"
