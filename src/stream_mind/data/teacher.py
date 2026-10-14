@@ -25,6 +25,14 @@ from ..tools.base import ActionRequest
 DEPTH_CHARS = 7  # 사고 한 단계 = 계획 앞 7글자 + ';' = 8토큰
 
 
+def judge_safe(model, state, action: str) -> bool:
+    """이 행동을 하면 다음 프레임에 무사한가 (충돌·죽음이 없는가)."""
+    s2, _, terminal = model.step(state, action)
+    if terminal and model.heuristic(s2) <= -1000:
+        return False
+    return getattr(s2, "hits", 0) == getattr(state, "hits", 0)
+
+
 def plan_text(depth: int, best) -> str:
     return "".join(best.actions[:DEPTH_CHARS]).ljust(DEPTH_CHARS, "-") + ";"
 
@@ -44,6 +52,13 @@ class TeacherMemory:
     facts: dict[str, str] = field(default_factory=dict)
     waiting: dict[str, Any] = field(default_factory=dict)  # 결과를 기다리는 일: job 번호 → 목적
     last_job: int | None = None
+    frame: dict | None = None  # 아직 판단하지 않은 최신 프레임
+    out: str = ""  # 아직 쓰지 않은 사고 (실행 한 번에 쓸 수 있는 양을 넘친 부분)
+    out_finished: bool = True
+    out_decision: tuple[str, int, str] | None = None
+    out_full: str = ""  # 지금 쓰고 있는 출력 전체 (끊기면 처음부터 다시 쓰려고)
+    out_kind: str = ""  # call | judge | plan
+    decided: dict[str, tuple[int, str]] = field(default_factory=dict)  # 도구 → (프레임, 고른 행동)
 
 
 _NUM = r"(-?\d+)"
@@ -118,8 +133,15 @@ class TeacherBackend(TextStreamBackend):
 
     def observe(self, state: TextState, event: Event) -> float:
         mem: TeacherMemory = state.model
+        if state.in_think and mem.out and mem.out_kind != "call":
+            # 관측이 사고를 끊었다. 판단·계획 문장은 낡았으니 버린다.
+            # 쓰던 호출은 다음 사고에서 이어 쓴다.
+            mem.out, mem.out_decision = "", None
         self.planner.observe(mem.plan, event)
         if isinstance(event, Obs):
+            if isinstance(event.payload, dict) and "model" in event.payload \
+                    and not event.payload.get("done"):
+                mem.frame = event.payload
             self._observe(mem, event)
         elif isinstance(event, CallRecord):
             self._observe_call(mem, event)
@@ -216,7 +238,33 @@ class TeacherBackend(TextStreamBackend):
         return f"<call tool={role_or_tool} op={op}>{body}</call>"
 
     def _think_text(self, state: TextState, max_tokens: int) -> tuple[str, int, bool, float]:
+        """학생처럼 실행 한 번에 최대 ``max_tokens`` 토큰만 쓴다. 긴 사고는 다음 실행으로 이어진다."""
         mem: TeacherMemory = state.model
+        if not mem.out:
+            mem.out, mem.out_finished = self._next_output(mem, max_tokens)
+            mem.out_full = mem.out
+            mem.out_kind = "call" if "<call " in mem.out else \
+                "judge" if mem.out.startswith("판단") else "plan"
+        chunk, used = "", 0
+        for ch in mem.out:
+            n = len(self.tok.encode(ch))
+            if used + n > max_tokens and used > 0:
+                break
+            chunk += ch
+            used += n
+            if used >= max_tokens:
+                break
+        mem.out = mem.out[len(chunk):]
+        finished = False
+        if not mem.out:
+            finished = mem.out_finished
+            if mem.out_decision is not None:  # 결정은 "> X;"를 다 적은 뒤에야 효력이 있다
+                tool, frame, act = mem.out_decision
+                mem.decided[tool] = (frame, act)
+                mem.out_decision = None
+        return chunk, used, finished, used * self.spt
+
+    def _next_output(self, mem: TeacherMemory, max_tokens: int) -> tuple[str, bool]:
         text, finished = "", True
         if mem.unread and "messenger" in self.roles.values():
             mem.unread = False
@@ -240,17 +288,64 @@ class TeacherBackend(TextStreamBackend):
                 op = next((r.split(":", 2)[2] for n, r in self.roles.items()
                            if n == name and r.startswith("custom:")), "run")
                 text = f"{p.note} " + self._call(name, op, expr)
+        elif mem.frame is not None:
+            text = self._judge(mem)
+            # 판단을 적은 뒤에도 계획이 수렴하지 않았으면 다음 실행에서 계획을 이어 간다.
+            finished = mem.plan.converged or mem.plan.search is None
         else:
             res = self.planner.think(mem.plan, max_tokens)
             text, finished = res.text, res.converged
-        tokens = len(self.tok.encode(text))
-        return text, tokens, finished, tokens * self.spt
+            if res.converged and res.text:
+                text += self._redecide(mem)
+        return text, finished
+
+    def _judge(self, mem: TeacherMemory) -> str:
+        """프레임마다 짧은 판단: 행동마다 다음 프레임에 안전한지(o/x)와 고른 행동.
+
+        예: ``판단 Uo Sx Do > U;``. 확인 가능한 사고(G8)이자, 학생에게는 판을 읽는 촘촘한 지도 신호다.
+        고른 행동은 계획이 지금 프레임과 맞고 안전하면 계획을, 아니면 안전한 행동 중 가장 나은 것.
+        """
+        p = mem.frame
+        mem.frame = None
+        model, state, tool, frame = p["model"], p["state"], p["tool"], p["frame"]
+        safe = {a: judge_safe(model, state, a) for a in model.actions}
+        valid, _ = self.planner._plan_status(mem.plan, tool, frame, model.key(state))
+        planned = mem.plan.plan[frame - mem.plan.plan_frame] if valid else None
+        if planned is not None and safe[planned]:
+            act = planned
+        else:
+            act = self.planner._reflex(model, state, [a for a in model.actions if safe[a]]
+                                       or list(model.actions))
+        mem.out_decision = (tool, frame, act)
+        marks = " ".join(f"{a}{'o' if safe[a] else 'x'}" for a in model.actions)
+        return f"판단 {marks} > {act};"
+
+    def _redecide(self, mem: TeacherMemory) -> str:
+        """같은 프레임 안에서 계획이 완성되면 결정을 계획 쪽으로 고친다 (``> X;``를 다시 적음)."""
+        tool = mem.plan.plan_tool
+        p = mem.plan.frames.get(tool) if tool else None
+        if p is None or p.get("done"):
+            return ""
+        model, state, frame = p["model"], p["state"], p["frame"]
+        valid, _ = self.planner._plan_status(mem.plan, tool, frame, model.key(state))
+        if not valid:
+            return ""
+        act = mem.plan.plan[frame - mem.plan.plan_frame]
+        if not judge_safe(model, state, act) or mem.decided.get(tool) == (frame, act):
+            return ""
+        mem.out_decision = (tool, frame, act)
+        return f" > {act};"
 
     def _choose(self, state: TextState, request: ActionRequest) -> tuple[str | None, int, float]:
         mem: TeacherMemory = state.model
         if request.candidates:
-            res = self.planner.act(mem.plan, request)
-            body = res.call.args["text"] if res.call else request.default
+            decided = mem.decided.get(request.tool)
+            p = mem.plan.frames.get(request.tool)
+            if decided and p is not None and decided[0] == p["frame"]:
+                body = decided[1]  # 사고에 적은 "> X"를 그대로 낸다
+            else:
+                res = self.planner.act(mem.plan, request)
+                body = res.call.args["text"] if res.call else request.default
             return body, 2, 2 * self.spt
         # 열린 행동: 원 스트림이 아직 답을 못 냈으면 짧게 기다려 달라고 한다.
         ready = next((p for p in mem.queue if p.kind == "reply"), None)

@@ -45,9 +45,11 @@ def find_leaks(tr: Transcript, n: int = 6) -> list[Leak]:
     segs = tr.segments
     bodies: list[str] = []
     obs_grams: list[set[str]] = []
+    said = ""  # 지금까지의 모델 출력 전체. 호출 문장이 여러 조각에 걸쳐 적힐 수 있다.
     for text, out in segs:
         if out:
-            bodies += [c.body() for c in parse_calls(text) if c.body()]
+            said += text
+            bodies = [c.body() for c in parse_calls(said) if c.body()]
         if _is_obs(text, out):
             t = text
             if "kind=result" in t:

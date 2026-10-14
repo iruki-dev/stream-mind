@@ -9,6 +9,7 @@
     <think>{사고}</think>\\n                        ← 모델 출력 (손실), 사고 안의 <call>은 결론(intent)
     [T=..]<call tool=.. op=.. origin=.. status=..>…</call>\\n   ← 실행 기록 (손실 없음)
 사고 도중 관측이 끼어들면 ``</think>\\n``을 넣어 닫는다(손실 없음). 다음 사고는 새 ``<think>``로 연다.
+호출 문장 중간에 끊겼다면 다음 사고에서 그 호출을 이어 쓴다(두 조각을 이어 하나의 호출로 읽는다).
 
 분기 (원 스트림 상태를 복사한 뒤):
     [</think>\\n]<call tool=X op=Y>   ← 프롬프트 (손실 없음)
@@ -106,7 +107,13 @@ class TextStreamBackend(Backend):
         if not state.in_think:
             return 0.0
         state.in_think = False
-        state.thought, state.returned_calls = "", 0
+        carry = ""
+        if not output:
+            # 관측이 호출 문장 중간에 끼어들었다. 덜 끝난 호출은 다음 사고에서 이어 쓴다.
+            i, j = state.thought.rfind("<call "), state.thought.rfind("</call>")
+            if i > j:
+                carry = state.thought[i:]
+        state.thought, state.returned_calls = carry, 0
         return self._emit(state, "</think>\n", output)
 
     def observe(self, state: TextState, event: Event) -> float:

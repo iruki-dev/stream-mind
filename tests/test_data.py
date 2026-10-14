@@ -15,6 +15,7 @@ from stream_mind.model.torch_backend import TorchBackend
 from stream_mind.nn.model import StreamLM, StreamLMConfig
 from stream_mind.nn.tokenizer import ByteTokenizer
 from stream_mind.tools import GameTool, Messenger
+from stream_mind.stream import Trust
 from stream_mind.train.sft import encode_episode, episode_loss, train
 from stream_mind.data.build import transcript_to_json
 
@@ -124,3 +125,30 @@ def test_pretrain_rows_are_consistent():
             if out and p.endswith("=") and "거꾸로" not in p:
                 expr = p.rsplit("\n", 1)[-1].replace("<bos>", "")[:-1]
                 assert str(eval(expr)) == a.strip()
+
+
+def test_teacher_respects_per_tick_token_budget_and_judges_every_frame():
+    sc = make_game(random.Random(2), "snake", frames=6)
+    res = run_scenario(sc, lambda roles: TeacherBackend(roles, seconds_per_token=0.01),
+                       MindConfig(**MIND))
+    tok = ByteTokenizer()
+    outs = [t for t, out in res.transcript.segments if out and t != "</think>\n"]
+    assert outs and max(len(tok.encode(t)) for t in outs) <= MIND["think_tokens_per_tick"] + 2
+    text = res.transcript.text()
+    assert text.count("판단 ") >= 5  # 프레임마다 판단을 적는다 (확인 가능한 사고)
+
+
+def test_interrupted_call_is_continued_in_the_next_thought():
+    """관측이 호출 문장 중간에 끼어들어도 다음 사고에서 이어 써서 호출이 실행된다."""
+    from stream_mind.model.text_backend import TextState
+    from stream_mind.stream import Obs
+
+    teacher = TeacherBackend({"messenger": "messenger"})
+    st = teacher.new_state("")
+    st.in_think = True
+    st.thought = "8+36=44 <call tool=messenger op=se"
+    teacher.observe(st, Obs(1.0, "game", "frame", Trust.DATA))
+    assert not st.in_think and st.thought == "<call tool=messenger op=se"
+    st.model.out, st.model.out_kind = "nd>44</call>", "call"
+    res = teacher.think(st, 16)
+    assert [c.body() for c in res.intents] == ["44"]
