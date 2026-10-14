@@ -85,7 +85,12 @@ class PlannerBackend(Backend):
     def __init__(self, seconds_per_token: float = 0.01, tokens_per_depth: int = 16,
                  beam_width: int = 24, max_depth: int = 14, min_depth: int = 8,
                  patience: int = 3, branch_tokens: int = 4, fork_seconds: float = 0.0,
-                 replan_margin: int = 3) -> None:
+                 replan_margin: int = 3, depth_format=None, joiner: str = " / ",
+                 final_text: str = "결론: 계획 확정") -> None:
+        self.depth_format = depth_format or (
+            lambda d, best: f"d={d} 계획 {''.join(best.actions[:8])} 가치 {best.value:.1f}")
+        self.joiner = joiner
+        self.final_text = final_text
         self.spt = seconds_per_token
         self.tokens_per_depth = tokens_per_depth
         self.beam_width = beam_width
@@ -165,18 +170,19 @@ class PlannerBackend(Backend):
             if search.depth >= self.max_depth or (
                     search.depth >= self.min_depth and state.stable >= self.patience):
                 state.converged = True
-            lines.append(f"d={search.depth} 계획 {''.join(best.actions[:8])} 가치 {best.value:.1f}")
+            lines.append(self.depth_format(search.depth, best))
         if done and search.best.actions:
             state.plan_tool, state.plan_frame = state.search_tool, state.search_frame
             state.plan, state.plan_keys = search.best.actions, search.best.keys
         if state.converged:
             used = max(0, int(done * self.tokens_per_depth - state.carry))
             state.carry = 0.0
-            lines.append("결론: 계획 확정")
+            if self.final_text:
+                lines.append(self.final_text)
         else:
             used = max_tokens
             state.carry = available - done * self.tokens_per_depth
-        return ThinkResult(" / ".join(lines), used, state.converged, used * self.spt)
+        return ThinkResult(self.joiner.join(lines), used, state.converged, used * self.spt)
 
     # 포크와 분기 -----------------------------------------------------------------------
     def fork(self, state: PlanState) -> tuple[PlanState, float]:

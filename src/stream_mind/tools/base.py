@@ -62,11 +62,8 @@ class Tool(ABC):
         return {}
 
     def full_manual(self) -> str:
-        lines = [f"[{self.name}] {self.manual}".rstrip()]
-        for op, desc in self.ops().items():
-            lines.append(f"  - <call tool={self.name} op={op}>…</call>: {desc}")
-        lines.append(f"  신뢰 등급: {self.trust.value}")
-        return "\n".join(lines)
+        ops = "; ".join(f"op={op}: {desc}" for op, desc in self.ops().items())
+        return f"[{self.name}] {self.manual} {ops} (trust={self.trust.value})".replace("  ", " ")
 
     @abstractmethod
     def risk(self, call: ToolCall) -> RiskLevel: ...

@@ -32,10 +32,12 @@ class Message:
 
 class Messenger(Tool):
     name = "messenger"
-    manual = "사용자와 메시지를 주고받는다. 새 메시지가 오면 알림이 오고, 내용은 read로 읽는다."
+    manual = "사용자와 메시지. 알림이 오면 read로 읽는다."
     trust = Trust.INSTRUCTION
 
-    def __init__(self, reply_sla: float = 5.0) -> None:
+    def __init__(self, reply_sla: float = 5.0, name: str | None = None) -> None:
+        if name:
+            self.name = name
         self.reply_sla = reply_sla
         self._ids = itertools.count(1)
         self._scheduled: list[Message] = []
@@ -49,7 +51,7 @@ class Messenger(Tool):
         self.decisions: dict[int, bool] = {}
 
     def ops(self) -> dict[str, str]:
-        return {"read": "안 읽은 메시지를 모두 읽는다", "send": "사용자에게 메시지를 보낸다 (본문은 텍스트)"}
+        return {"read": "안 읽은 메시지 읽기", "send": "본문을 보낸다"}
 
     # 바깥(사용자) 쪽 API --------------------------------------------------------------
     def deliver(self, text: str, at: float, sender: str = "user",

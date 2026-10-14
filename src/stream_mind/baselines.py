@@ -25,7 +25,9 @@ class TurnAgent:
         self.clock = clock
         self.think_budget_tokens = think_budget_tokens
         self.chunk_tokens = chunk_tokens
-        self.state = backend.new_state("")
+        from .mind import build_preamble
+
+        self.state = backend.new_state(build_preamble(self.tools.values()))
         self.think_tokens = 0
         self.branch_tokens = 0
         self.turns = 0

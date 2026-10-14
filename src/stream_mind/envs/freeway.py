@@ -114,7 +114,7 @@ class Freeway(GameModel[FreewayState]):
         return float(s.score)
 
     def render(self, s: FreewayState) -> str:
-        rows = [f"t={s.t} 점수={s.score} 충돌={s.hits} 행동: U/D/S"]
+        rows = [f"t={s.t} score={s.score} hit={s.hits} @y={s.y}"]
         for y in range(TOP, -1, -1):
             cells = []
             for col in range(self.width):
@@ -124,6 +124,6 @@ class Freeway(GameModel[FreewayState]):
                     cells.append("#")
                 else:
                     cells.append(".")
-            label = "도착" if y == TOP else ("출발" if y == 0 else f"v={self.lanes[y - 1].speed:+d}")
-            rows.append(f"{y} |{''.join(cells)}| {label}")
+            label = "" if y in (0, TOP) else f"{self.lanes[y - 1].speed:+d}"
+            rows.append(f"{y}|{''.join(cells)}|{label}")
         return "\n".join(rows)

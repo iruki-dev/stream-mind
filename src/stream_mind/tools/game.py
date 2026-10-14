@@ -24,15 +24,14 @@ class GameTool(Tool):
         self.name = name
         self.frame_period = frame_period
         self.start = start
-        self.manual = (f"실시간 게임 {env.model.name}. 프레임 간격 {frame_period:g}초. "
-                       f"다음 프레임까지 행동이 없으면 기본 행동이 실행된다.")
+        self.manual = f"실시간 {env.model.name}, {frame_period:g}초마다 프레임. 늦으면 기본 행동."
         self._pending: str | None = None
         self._reported = -1
         self.observed_frames = 0
         self.actions_log: list[tuple[int, str, bool]] = []  # (프레임, 실행된 행동, 기본 행동 여부)
 
     def ops(self) -> dict[str, str]:
-        return {"act": f"다음 프레임의 행동을 고른다: {' / '.join(self.env.model.actions)}"}
+        return {"act": f"다음 행동 {'/'.join(self.env.model.actions)}"}
 
     def boundary(self, frame: int) -> float:
         return self.start + frame * self.frame_period
@@ -58,7 +57,7 @@ class GameTool(Tool):
         if action not in self.env.model.actions:
             return CallResult(False, f"행동 후보가 아니다: {action}")
         self._pending = action
-        return CallResult(True, f"프레임 {self.env.frame + 1}에 {action}", informative=False)
+        return CallResult(True, f"f{self.env.frame + 1}={action}", informative=False)
 
     def poll(self, now: float) -> list[Obs]:
         self._advance(now)

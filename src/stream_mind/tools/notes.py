@@ -43,10 +43,12 @@ def _grams(text: str) -> set[str]:
 
 class NotesTool(Tool):
     name = "notes"
-    manual = "정확한 사실, 이름, 숫자, 결정, 도구 설명서를 적어 두고 찾는 외부 저장소."
+    manual = "정확한 사실을 적고 찾는 외부 기억."
     trust = Trust.DATA
 
-    def __init__(self, path: str | Path | None = None) -> None:
+    def __init__(self, path: str | Path | None = None, name: str | None = None) -> None:
+        if name:
+            self.name = name
         self.path = Path(path) if path else None
         self._notes: dict[int, Note] = {}
         if self.path and self.path.exists():
@@ -56,12 +58,8 @@ class NotesTool(Tool):
         self._ids = itertools.count(max(self._notes, default=0) + 1)
 
     def ops(self) -> dict[str, str]:
-        return {
-            "search": '{"query": 검색어, "k": 개수}',
-            "add": '{"text": 내용, "kind": fact|episode|unresolved|manual}',
-            "update": '{"id": 번호, "text": 새 내용}',
-            "delete": '{"id": 번호}',
-        }
+        return {"search": "본문으로 검색", "add": "본문을 적기", "update": '{"id","text"}',
+                "delete": '{"id"}'}
 
     def risk(self, call: ToolCall) -> RiskLevel:
         return RiskLevel.DELIBERATE if call.op in {"update", "delete"} else RiskLevel.IMMEDIATE

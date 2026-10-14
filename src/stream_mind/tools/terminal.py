@@ -38,11 +38,14 @@ class Job:
 
 class TerminalTool(Tool):
     name = "terminal"
-    manual = "셸 명령을 실행하고 출력 흐름을 관측한다. 실행 중인 명령에 중단 신호를 보낼 수 있다."
+    manual = "셸 명령 실행, 출력 관측."
     trust = Trust.DATA
 
     def __init__(self, cwd: str | Path | None = None, sandboxed: bool = False,
-                 poll_interval: float = 0.05, max_chunk_chars: int = 4000) -> None:
+                 poll_interval: float = 0.05, max_chunk_chars: int = 4000,
+                 name: str | None = None) -> None:
+        if name:
+            self.name = name
         self.cwd = str(cwd) if cwd else None
         self.sandboxed = sandboxed
         self.poll_interval = poll_interval
@@ -51,8 +54,7 @@ class TerminalTool(Tool):
         self._next_id = 1
 
     def ops(self) -> dict[str, str]:
-        return {"run": "셸 명령을 실행한다 (본문은 명령)",
-                "interrupt": '실행 중인 명령에 중단 신호를 보낸다 {"job": 번호}'}
+        return {"run": "본문 명령 실행", "interrupt": '중단 {"job": 번호}'}
 
     def risk(self, call: ToolCall) -> RiskLevel:
         if call.op == "interrupt":

@@ -79,8 +79,7 @@ class Snake(GameModel[SnakeState]):
         return float(s.score)
 
     def render(self, s: SnakeState) -> str:
-        rows = [f"t={s.t} 점수={s.score} 방향={s.direction} 행동: U/D/L/R"
-                + ("" if s.alive else " (게임 끝)")]
+        rows = [f"t={s.t} score={s.score} dir={s.direction}" + ("" if s.alive else " dead")]
         cells = set(s.body[1:])
         for y in range(self.size - 1, -1, -1):
             line = []
