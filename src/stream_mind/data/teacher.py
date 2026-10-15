@@ -18,11 +18,34 @@ from typing import Any
 
 from ..model.sim import PlannerBackend, PlanState
 from ..model.text_backend import TextState, TextStreamBackend
-from ..nn.tokenizer import ByteTokenizer
+from ..nn.tokenizer import get_tokenizer
 from ..stream import CallRecord, Event, Obs, Trust
 from ..tools.base import ActionRequest
 
-DEPTH_CHARS = 7  # 사고 한 단계 = 계획 앞 7글자 + ';' = 8토큰
+DEPTH_CHARS = 7  # 사고 한 단계 = 계획 앞 7글자 + ';' = 8토큰 (바이트 토크나이저 기준)
+
+
+def depth_tokens() -> int:
+    """사고 한 단계(계획 7글자 + ';')가 지금 토크나이저로 몇 토큰인가. 시간 압박의 단위가 된다."""
+    tok = get_tokenizer()
+    if tok.name not in _DEPTH_CACHE:
+        if tok.name == "byte":
+            _DEPTH_CACHE[tok.name] = DEPTH_CHARS + 1
+        else:
+            import random
+            rng = random.Random(0)
+            lens = [len(tok.encode("".join(rng.choice("UDSLR-") for _ in range(DEPTH_CHARS)) + ";"))
+                    for _ in range(200)]
+            _DEPTH_CACHE[tok.name] = max(1, round(sum(lens) / len(lens)))
+    return _DEPTH_CACHE[tok.name]
+
+
+_DEPTH_CACHE: dict[str, int] = {}
+
+
+def token_scale() -> float:
+    """바이트 토큰 기준으로 정한 토큰당 시간을 지금 토크나이저에 맞추는 배율 (같은 사고 = 같은 시간)."""
+    return (DEPTH_CHARS + 1) / depth_tokens()
 
 
 def judge_safe(model, state, action: str) -> bool:
@@ -97,14 +120,16 @@ class TeacherBackend(TextStreamBackend):
 
     def __init__(self, roles: dict[str, str], seconds_per_token: float = 0.01,
                  prefill_ratio: float = 0.1, record: bool = True,
-                 facts: dict[str, str] | None = None, **planner_kw: Any) -> None:
+                 facts: dict[str, str] | None = None,
+                 knowledge: dict[str, tuple[str, str]] | None = None, **planner_kw: Any) -> None:
         self.roles = roles
+        self.knowledge = dict(knowledge or {})  # 질문 → (사고, 답): 더 큰 교사가 미리 낸 답 (증류)
         self.facts = dict(facts or {})  # 이미 공부해 둔 사실: 노트 없이 바로 답한다  # 도구 이름 → 역할 (messenger, terminal, notes, game, 시험용 도구 등)
         self.spt = seconds_per_token
         self.prefill_ratio = prefill_ratio
         self.record = record
-        self.tok = ByteTokenizer()
-        kw = dict(tokens_per_depth=DEPTH_CHARS + 1, depth_format=plan_text, joiner="",
+        self.tok = get_tokenizer()  # 학생과 같은 토큰 단위로 tick당 사고량을 센다
+        kw = dict(tokens_per_depth=depth_tokens(), depth_format=plan_text, joiner="",
                   final_text="", seconds_per_token=seconds_per_token)
         kw.update(planner_kw)
         self.planner = PlannerBackend(**kw)
@@ -155,7 +180,7 @@ class TeacherBackend(TextStreamBackend):
         elif role == "messenger" and ev.kind == "result" and ev.trust == Trust.INSTRUCTION:
             lines = [ln.split(":", 1)[1].strip() for ln in ev.text.splitlines() if ":" in ln]
             # 한 묶음에 질문이 있으면 그 답만 보낸다. 잡담과 진술에는 따로 답하지 않는다.
-            has_question = any(_kind_of(t) in QUESTIONS for t in lines)
+            has_question = any(_kind_of(t) in QUESTIONS or t in self.knowledge for t in lines)
             for text in lines:
                 self._instruction(mem, text, quiet=has_question)
         elif role == "terminal" and ev.kind == "result" and isinstance(ev.payload, int):
@@ -189,6 +214,10 @@ class TeacherBackend(TextStreamBackend):
 
     def _instruction(self, mem: TeacherMemory, text: str, quiet: bool = False) -> None:
         if text.startswith("/"):
+            return
+        if text in self.knowledge:
+            thought, answer = self.knowledge[text]
+            mem.queue.append(Pending("reply", answer, thought or "답한다"))
             return
         correction = text.startswith("아니")
         if correction:
@@ -246,8 +275,9 @@ class TeacherBackend(TextStreamBackend):
             mem.out_kind = "call" if "<call " in mem.out else \
                 "judge" if mem.out.startswith("판단") else "plan"
         chunk, used = "", 0
+        whole = self.tok.name != "byte"  # BPE는 글자를 합쳐 세야 실제 토큰 수가 된다
         for ch in mem.out:
-            n = len(self.tok.encode(ch))
+            n = len(self.tok.encode(chunk + ch)) - used if whole else len(self.tok.encode(ch))
             if used + n > max_tokens and used > 0:
                 break
             chunk += ch

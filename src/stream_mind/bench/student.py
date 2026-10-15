@@ -19,7 +19,7 @@ from ..baselines import TurnAgent
 from ..clock import SimClock
 from ..data.build import MIND
 from ..data.scenarios import make_dialogue, run_scenario
-from ..data.teacher import DEPTH_CHARS
+from ..data.teacher import depth_tokens
 from ..envs import GAMES, RealtimeEnv
 from ..mind import Mind, MindConfig
 from ..model.sim import PlannerBackend
@@ -27,11 +27,13 @@ from ..model.torch_backend import TorchBackend
 from ..nn.model import StreamLM
 from ..tools import GameTool
 
-FULL_THINK_TOKENS = PlannerBackend(tokens_per_depth=DEPTH_CHARS + 1).full_think_tokens()
+def full_think_tokens() -> int:
+    """교사 계획기가 끝까지 생각하는 토큰 수 (지금 토크나이저 단위)."""
+    return PlannerBackend(tokens_per_depth=depth_tokens()).full_think_tokens()
 
 
 def spt_for_pressure(pressure: float, frame_period: float = 1.0) -> float:
-    return pressure * frame_period / FULL_THINK_TOKENS
+    return pressure * frame_period / full_think_tokens()
 
 
 def dialogue_accuracy(model: StreamLM, kinds: tuple[str, ...], n: int, mode: str,

@@ -30,14 +30,16 @@ from ..mind import MindConfig
 from ..model.text_backend import Transcript
 from ..tools import GameTool
 from .leak import find_leaks
-from .scenarios import Scenario, make_dialogue, make_game, run_scenario
-from .teacher import TeacherBackend
+from .scenarios import Scenario, make_dialogue, make_game, make_general, run_scenario
+from .teacher import TeacherBackend, token_scale
 
 DIALOGUE_KINDS = ("arith", "reverse", "name", "remember", "correction", "chat", "cat", "inject",
                   "delete")
 # 처음 보는 도구(tool)는 학습에 넣지 않는다. G10 평가용이다.
 
 MIND = dict(think_tokens_per_tick=16, think_budget_tokens=256, auto_read=False)
+# 일반 지식·추론 질문은 풀이와 답이 길다 (교사의 풀이 + 답이 사고 안에 들어간다).
+MIND_GENERAL = dict(MIND, think_budget_tokens=1024)
 GAME_SPT = (0.002, 0.004, 0.008, 0.016)  # 사고 토큰당 시간: 시간 압박을 섞는다
 
 
@@ -55,10 +57,23 @@ def _dialogue_job(args) -> dict[str, Any] | None:
     return transcript_to_json(res.transcript, {"kind": kind, "mode": mode})
 
 
+def _general_job(args) -> dict[str, Any] | None:
+    """큰 교사의 답을 스트림 형식으로 옮긴다 (학습 계획 2단계: 미래를 아는 교사로부터 증류)."""
+    seed, item, mode = args
+    rng = random.Random(seed)
+    sc = make_general(rng, item["question"], item["answer"], item.get("thought", ""), mode)
+    res = run_scenario(sc, lambda roles: TeacherBackend(roles, knowledge=sc.knowledge),
+                       MindConfig(**MIND_GENERAL))
+    if not res.success or find_leaks(res.transcript):
+        return None
+    return transcript_to_json(res.transcript, {"kind": "general", "mode": mode,
+                                               "src": item.get("src", "")})
+
+
 def _game_job(args) -> dict[str, Any] | None:
     seed, game, frames, with_msg, mode = args
     rng = random.Random(seed)
-    spt = rng.choice(GAME_SPT)
+    spt = rng.choice(GAME_SPT) * token_scale()  # 같은 압박 = 같은 사고에 같은 시간
     sc = make_game(rng, game, frames=frames, with_message=with_msg)
     if mode == "turn":
         return _turn_game(sc, spt)
@@ -100,13 +115,27 @@ def jobs(preset: str, n_dialogue: int, n_game: int, seed: int,
     return dialogue, games
 
 
+def general_jobs(preset: str, items: list[dict[str, Any]], seed: int) -> list:
+    rng = random.Random(seed + 7)
+    return [(rng.randrange(1 << 30), it, "turn" if preset == "turn" or rng.random() < 0.4 else "stream")
+            for it in items]
+
+
 def build(preset: str, out: Path, n_dialogue: int, n_game: int, seed: int = 0,
-          workers: int = 4, game_names: tuple[str, ...] = ("freeway", "snake")) -> dict[str, int]:
+          workers: int = 4, game_names: tuple[str, ...] = ("freeway", "snake"),
+          general: list[dict[str, Any]] | None = None) -> dict[str, int]:
     dialogue, games = jobs(preset, n_dialogue, n_game, seed, game_names)
     out.parent.mkdir(parents=True, exist_ok=True)
     kept = dropped = 0
     with mp.get_context("fork").Pool(workers) as pool, out.open("w", encoding="utf-8") as f:
         for res in pool.imap_unordered(_dialogue_job, dialogue, chunksize=4):
+            if res is None:
+                dropped += 1
+                continue
+            f.write(json.dumps(res, ensure_ascii=False) + "\n")
+            kept += 1
+        for res in pool.imap_unordered(_general_job, general_jobs(preset, general or [], seed),
+                                       chunksize=8):
             if res is None:
                 dropped += 1
                 continue
@@ -136,9 +165,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--game-names", nargs="*", default=["freeway", "snake"])
+    ap.add_argument("--general", help="큰 교사의 답 (distill.py teach의 출력 jsonl)")
+    ap.add_argument("--general-n", type=int, default=0, help="그중 쓸 개수 (0이면 전부)")
     args = ap.parse_args(argv)
+    general = load(args.general) if args.general else []
+    if args.general_n:
+        general = general[: args.general_n]
     stats = build(args.preset, Path(args.out), args.dialogue, args.games, args.seed, args.workers,
-                  tuple(args.game_names))
+                  tuple(args.game_names), general)
     print(json.dumps(stats))
     return 0
 

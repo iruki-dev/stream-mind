@@ -19,7 +19,7 @@ import torch
 import torch.nn.functional as F
 
 from ..nn.model import StreamLM
-from ..nn.tokenizer import ByteTokenizer
+from ..nn.tokenizer import tokenizer_of
 
 
 @dataclass
@@ -46,7 +46,7 @@ class AdapterBank:
         self.root.mkdir(parents=True, exist_ok=True)
         self.top_k = top_k
         self.switch_threshold = switch_threshold
-        self.tok = ByteTokenizer()
+        self.tok = tokenizer_of(model)
         self.history: dict[str, list[AdapterRecord]] = {}  # 이름 → 버전들 (마지막이 현재)
         self.deleted: set[str] = set()
         self._current_key: torch.Tensor | None = None

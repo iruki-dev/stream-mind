@@ -25,7 +25,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from . import delta
-from .lora import LoRALinear
+from .lora import AdapterMixin, LoRALinear
 
 # 잊음 감쇠로 상태 값이 아주 작아지면 CPU의 비정규화 수(denormal) 연산이 수십 배 느려진다.
 torch.set_flush_denormal(True)
@@ -235,7 +235,7 @@ class StreamState:
         return total
 
 
-class StreamLM(nn.Module):
+class StreamLM(AdapterMixin, nn.Module):
     def __init__(self, cfg: StreamLMConfig) -> None:
         super().__init__()
         self.cfg = cfg
@@ -276,6 +276,16 @@ class StreamLM(nn.Module):
     def forward(self, ids: torch.Tensor, state: StreamState | None = None,
                 times: torch.Tensor | None = None, chunked: bool = True):
         """ids (B, T) → logits (B, T, V), 새 상태."""
+        h, st = self.hidden(ids, state, times, chunked)
+        return self.project(h), st
+
+    def project(self, h: torch.Tensor) -> torch.Tensor:
+        """마지막 은닉 → 로짓. 학습 손실은 필요한 위치에서만 부른다 (큰 어휘에서 메모리를 아낀다)."""
+        return h @ self.embed.weight.t() if self.head is None else self.head(h)
+
+    def hidden(self, ids: torch.Tensor, state: StreamState | None = None,
+               times: torch.Tensor | None = None, chunked: bool = True):
+        """ids (B, T) → 마지막 은닉 (B, T, D), 새 상태."""
         if state is None:
             state = self.initial_state(ids.shape[0])
         x = self.embed(ids)
@@ -286,63 +296,8 @@ class StreamLM(nn.Module):
             x, st = blk(x, st, chunked)
             new_layers.append(st)
         x = self.norm(x)
-        logits = x @ self.embed.weight.t() if self.head is None else self.head(x)
         last_time = times[:, -1:] if (times is not None and times.shape[1]) else state.last_time
-        return logits, StreamState(new_layers, last_time, state.tokens + ids.shape[1], state.extra)
-
-    # 어댑터 ----------------------------------------------------------------------------
-    def lora_modules(self) -> list[tuple[str, LoRALinear]]:
-        return [(n, m) for n, m in self.named_modules() if isinstance(m, LoRALinear)]
-
-    def add_adapter(self, name: str, rank: int = 4) -> None:
-        for _, m in self.lora_modules():
-            m.add(name, rank)
-
-    def remove_adapter(self, name: str) -> None:
-        for _, m in self.lora_modules():
-            m.remove(name)
-
-    def set_active_adapters(self, weights: dict[str, float]) -> None:
-        for _, m in self.lora_modules():
-            m.active = {k: v for k, v in weights.items() if k in m.lora_a}
-
-    def adapter_names(self) -> list[str]:
-        mods = self.lora_modules()
-        return list(mods[0][1].lora_a.keys()) if mods else []
-
-    def adapter_parameters(self, name: str) -> list[nn.Parameter]:
-        out = []
-        for _, m in self.lora_modules():
-            if name in m.lora_a:
-                out += [m.lora_a[name], m.lora_b[name]]
-        return out
-
-    def adapter_state(self, name: str) -> dict[str, torch.Tensor]:
-        out = {}
-        for path, m in self.lora_modules():
-            if name in m.lora_a:
-                out[f"{path}.a"] = m.lora_a[name].detach().clone()
-                out[f"{path}.b"] = m.lora_b[name].detach().clone()
-        return out
-
-    def load_adapter(self, name: str, tensors: dict[str, torch.Tensor]) -> None:
-        for path, m in self.lora_modules():
-            if f"{path}.a" not in tensors:
-                continue
-            a, b = tensors[f"{path}.a"], tensors[f"{path}.b"]
-            m.lora_a[name] = nn.Parameter(a.clone().to(m.weight.device))
-            m.lora_b[name] = nn.Parameter(b.clone().to(m.weight.device))
-            m.scales[name] = 1.0
-
-    def merge_adapter(self, name: str) -> None:
-        for _, m in self.lora_modules():
-            if name in m.lora_a:
-                m.merge(name)
-
-    def base_parameters(self) -> list[nn.Parameter]:
-        lora_ids = {id(p) for _, m in self.lora_modules()
-                    for p in list(m.lora_a.values()) + list(m.lora_b.values())}
-        return [p for p in self.parameters() if id(p) not in lora_ids]
+        return x, StreamState(new_layers, last_time, state.tokens + ids.shape[1], state.extra)
 
     # 저장 ------------------------------------------------------------------------------
     def save(self, path: str | Path) -> None:
@@ -355,6 +310,9 @@ class StreamLM(nn.Module):
     def load(cls, path: str | Path, map_location: str = "cpu",
              device: str | torch.device | None = None) -> "StreamLM":
         blob = torch.load(path, map_location=map_location, weights_only=True)
+        if blob.get("kind") == "hf":  # 공개 체크포인트 + 스트림 어댑터
+            from .hf_model import HFStreamLM
+            return HFStreamLM.from_blob(blob, device=device)
         model = cls(StreamLMConfig(**blob["config"]))
         model.load_state_dict(blob["state"], strict=False)
         return model.to(resolve_device(device)).eval()

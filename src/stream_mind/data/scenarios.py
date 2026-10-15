@@ -78,6 +78,7 @@ class Scenario:
     reply_sla: float = 6.0
     no_notes: bool = False  # 노트 도구 없이 (내부 기억만으로) 답해야 한다
     facts: dict[str, str] = field(default_factory=dict)  # 교사가 이미 아는 사실 (공고화 재료)
+    knowledge: dict[str, tuple[str, str]] = field(default_factory=dict)  # 질문 → (사고, 답): 큰 교사의 답
 
     @property
     def wall(self) -> bool:
@@ -128,6 +129,21 @@ def make_tool_task(rng: random.Random, name: str = "calc", op: str = "eval",
     return Scenario("tool", mode, msgs, str(a * b), aliases=_aliases(rng, False),
                     custom_tool=(name, op), until=msgs[-1][0] + 20.0,
                     reply_sla=1e9 if mode == "turn" else 6.0)
+
+
+def make_general(rng: random.Random, question: str, answer: str, thought: str = "",
+                 mode: str = "stream", vary_names: bool = True) -> Scenario:
+    """일반 지식·추론 질문 (G1). 답은 더 큰 교사가 미리 낸 것을 쓴다 (학습 계획 2단계, 증류).
+
+    턴 모드면 질문이 한 번에, 스트림 모드면 타이핑 속도로 도착한다. 답은 길 수 있어 시간 여유를 둔다.
+    """
+    al = _aliases(rng, vary_names)
+    if mode == "turn":
+        msgs, sla = [(0.0, question)], 1e9
+    else:
+        msgs, sla = _typing_schedule(rng, [question], rng.uniform(0.2, 1.5)), 1e9
+    return Scenario("general", mode, msgs, answer, aliases=al, until=msgs[-1][0] + 120.0,
+                    reply_sla=sla, knowledge={question: (thought, answer)})
 
 
 def make_dialogue(rng: random.Random, kind: str, mode: str = "stream", vary_names: bool = True,

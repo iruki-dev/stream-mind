@@ -18,7 +18,7 @@ import torch
 import torch.nn.functional as F
 
 from ..nn.model import StreamLM, StreamState
-from ..nn.tokenizer import ByteTokenizer
+from ..nn.tokenizer import ByteTokenizer, split_incomplete_utf8, tokenizer_of  # noqa: F401
 from ..tools.base import ActionRequest
 from .text_backend import TextState, TextStreamBackend
 
@@ -28,22 +28,6 @@ class ModelCursor:
     st: StreamState
     logits: torch.Tensor  # (V,)
     pending: list[int] | None = None  # 아직 글자가 덜 끝난 바이트 (다음 조각에서 이어 디코드)
-
-
-def split_incomplete_utf8(ids: list[int]) -> tuple[list[int], list[int]]:
-    """끝에 덜 끝난 UTF-8 글자가 있으면 떼어 낸다. (완성된 앞부분, 덜 끝난 꼬리)."""
-    n = len(ids)
-    for back in range(1, min(4, n) + 1):
-        b = ids[n - back]
-        if b >= 256:
-            return ids, []
-        if b & 0xC0 == 0x80:  # 이어지는 바이트
-            continue
-        need = 2 if b & 0xE0 == 0xC0 else 3 if b & 0xF0 == 0xE0 else 4 if b & 0xF8 == 0xF0 else 1
-        if back < need:
-            return ids[: n - back], ids[n - back:]
-        return ids, []
-    return ids, []
 
 
 class TorchBackend(TextStreamBackend):
@@ -60,7 +44,7 @@ class TorchBackend(TextStreamBackend):
         self.action_temperature = temperature if action_temperature is None else action_temperature
         self.gen = torch.Generator().manual_seed(seed if seed is not None else 0)
         self.model = model.eval()
-        self.tok = tokenizer or ByteTokenizer()
+        self.tok = tokenizer or tokenizer_of(model)
         self.fixed_spt = seconds_per_token
         self.prefill_ratio = prefill_ratio
         self.max_branch_tokens = max_branch_tokens
@@ -139,7 +123,7 @@ class TorchBackend(TextStreamBackend):
                 else self.fixed_spt
         # 한 글자가 두 조각에 걸치면 따로 디코드되어 깨진다. 덜 끝난 바이트는 다음 조각으로 넘긴다.
         ids = (cur.pending or []) + ids
-        done, tail = (ids, []) if finished else split_incomplete_utf8(ids)
+        done, tail = (ids, []) if finished else self.tok.split_incomplete(ids)
         cur.pending = tail
         return self.tok.decode(done), n, finished, self._cost(measured, n, 0)
 

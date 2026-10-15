@@ -8,12 +8,12 @@ import torch
 
 from ..data.pretrain import arith_row, copy_row, reverse_row
 from ..nn.model import StreamLM
-from ..nn.tokenizer import ByteTokenizer
+from ..nn.tokenizer import tokenizer_of
 
 
 @torch.no_grad()
 def complete(model: StreamLM, prompt: str, max_tokens: int = 24, stop: str = "\n") -> str:
-    tok = ByteTokenizer()
+    tok = tokenizer_of(model)
     logits, st = model(torch.tensor([tok.encode(prompt)], device=model.device))
     out: list[int] = []
     for _ in range(max_tokens):

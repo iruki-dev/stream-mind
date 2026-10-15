@@ -38,7 +38,7 @@ from ..envs import GAMES, RealtimeEnv
 from ..mind import Mind, MindConfig
 from ..model.torch_backend import TorchBackend
 from ..nn.model import StreamLM
-from ..nn.tokenizer import ByteTokenizer
+from ..nn.tokenizer import ByteTokenizer, tokenizer_of  # noqa: F401
 from ..tools import GameTool, NotesTool
 from ..tools.notes import TRUSTED_SOURCES
 from ..train.sft import encode_episode, train
@@ -129,7 +129,7 @@ def train_adapter(model: StreamLM, name: str, rows: list[dict], steps: int, lr: 
                   rank: int = 8, keep_active: dict[str, float] | None = None,
                   stop: Callable[[], bool] | None = None) -> bool:
     """본체는 고정하고 어댑터 ``name``만 학습한다. 중간에 멈추면 False."""
-    tok = ByteTokenizer()
+    tok = tokenizer_of(model)
     eps = [encode_episode(r, tok) for r in rows]
     if name not in model.adapter_names():
         model.add_adapter(name, rank)
@@ -137,8 +137,9 @@ def train_adapter(model: StreamLM, name: str, rows: list[dict], steps: int, lr: 
     active[name] = 1.0
     model.set_active_adapters(active)
     params = model.adapter_parameters(name)
-    frozen = [p for p in model.parameters() if all(p is not q for q in params)]
-    for p in frozen:
+    ids = {id(p) for p in params}
+    frozen = [(p, p.requires_grad) for p in model.parameters() if id(p) not in ids]
+    for p, _ in frozen:
         p.requires_grad_(False)
     try:
         chunk = 2  # 입력이 오면 곧바로 멈출 수 있게 자주 확인한다
@@ -152,8 +153,8 @@ def train_adapter(model: StreamLM, name: str, rows: list[dict], steps: int, lr: 
                 return False
         return True
     finally:
-        for p in frozen:
-            p.requires_grad_(True)
+        for p, was in frozen:  # 원래대로 (공개 체크포인트 본체는 계속 고정)
+            p.requires_grad_(was)
         model.eval()
 
 

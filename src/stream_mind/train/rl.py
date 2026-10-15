@@ -27,9 +27,10 @@ from ..envs import GAMES, RealtimeEnv
 from ..mind import Mind, MindConfig
 from ..model.torch_backend import TorchBackend
 from ..nn.model import StreamLM
-from ..nn.tokenizer import ByteTokenizer
+from ..nn.tokenizer import ByteTokenizer, tokenizer_of  # noqa: F401
 from ..tools import GameTool
-from .sft import Episode, encode_episode, episode_loss
+from ..data.teacher import token_scale
+from .sft import Episode, encode_episode, episode_loss, make_scaler, trainable
 
 
 @dataclass
@@ -118,8 +119,10 @@ class RLLog:
 def rl_train(model: StreamLM, cfg: RLConfig, sft_episodes: list[Episode] | None = None,
              log: Callable[[str], None] = print) -> list[RLLog]:
     rng = random.Random(cfg.seed)
-    tok = ByteTokenizer()
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg.lr, betas=(0.9, 0.95), weight_decay=0.0)
+    tok = tokenizer_of(model)
+    params = trainable(model)
+    opt = torch.optim.AdamW(params, lr=cfg.lr, betas=(0.9, 0.95), weight_decay=0.0)
+    scaler = make_scaler(model)
     history: list[RLLog] = []
     t0 = time.time()
     for it in range(cfg.iterations):
@@ -130,7 +133,7 @@ def rl_train(model: StreamLM, cfg: RLConfig, sft_episodes: list[Episode] | None 
         for _ in range(cfg.seeds_per_iter):
             game = rng.choice(cfg.games)
             seed = rng.randrange(1 << 20)
-            spt = rng.choice(cfg.spt_choices)
+            spt = rng.choice(cfg.spt_choices) * token_scale()
             groups.append([rollout(model, game, seed, frames, spt, cfg, rng.randrange(1 << 30), tok)
                            for _ in range(cfg.group)])
         for _ in range(cfg.dialogue_groups if cfg.dialogue_kinds else 0):
@@ -150,14 +153,21 @@ def rl_train(model: StreamLM, cfg: RLConfig, sft_episodes: list[Episode] | None 
                 if abs(adv) < 1e-6:
                     continue
                 # CE를 줄이는 방향 = 로그 확률을 올리는 방향. 이점이 음수면 반대로 민다.
-                episode_loss(model, r.episode, bptt=512, scale=adv / (len(g) * len(groups)))
+                episode_loss(model, r.episode, bptt=512, scale=adv / (len(g) * len(groups)),
+                             scaler=scaler)
                 n_terms += 1
         if sft_episodes and cfg.sft_mix:
             batch = rng.sample(sft_episodes, min(cfg.sft_mix, len(sft_episodes)))
             for e in batch:
-                episode_loss(model, e, bptt=512, scale=1.0 / len(batch))
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        opt.step()
+                episode_loss(model, e, bptt=512, scale=1.0 / len(batch), scaler=scaler)
+        if scaler is not None:
+            scaler.unscale_(opt)
+        torch.nn.utils.clip_grad_norm_(params, 1.0)
+        if scaler is not None:
+            scaler.step(opt)
+            scaler.update()
+        else:
+            opt.step()
         model.eval()
         flat = [r for g in groups for r in g]
         entry = RLLog(it, frames, statistics.mean(r.score for r in flat),
@@ -191,7 +201,7 @@ def main(argv: list[str] | None = None) -> int:
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
     model = StreamLM.load(args.init, device=args.device)
-    sft = load_episodes(args.sft_data, ByteTokenizer()) if args.sft_data else None
+    sft = load_episodes(args.sft_data, tokenizer_of(model)) if args.sft_data else None
     cfg = RLConfig(iterations=args.iterations, group=args.group,
                    seeds_per_iter=args.seeds_per_iter, lr=args.lr, seed=args.seed)
     from pathlib import Path
