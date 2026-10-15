@@ -1,0 +1,59 @@
+{
+ "static": {
+  "stream_model": {
+   "arith": 0.325,
+   "reverse": 0.975,
+   "name": 0.975,
+   "remember": 0.45,
+   "correction": 0.45,
+   "chat": 1.0
+  },
+  "turn_model": {
+   "arith": 0.8,
+   "reverse": 1.0,
+   "name": 0.975,
+   "remember": 0.175,
+   "correction": 0.975,
+   "chat": 1.0
+  },
+  "stream_mean": 0.6958333333333333,
+  "turn_mean": 0.8208333333333333,
+  "passed": false
+ },
+ "realtime": {
+  "freeway-lite@0.5": {
+   "stream_model+mind": 1.5,
+   "turn_model+turn": 0.8,
+   "stream_model+turn": 1.5
+  },
+  "freeway-lite@1": {
+   "stream_model+mind": 1.5,
+   "turn_model+turn": 0.9,
+   "stream_model+turn": 1.5
+  },
+  "freeway-lite@2": {
+   "stream_model+mind": 1.5,
+   "turn_model+turn": 0.0,
+   "stream_model+turn": 1.1
+  },
+  "snake-lite@0.5": {
+   "stream_model+mind": 0.2,
+   "turn_model+turn": 0.9,
+   "stream_model+turn": 0.2
+  },
+  "snake-lite@1": {
+   "stream_model+mind": 0.2,
+   "turn_model+turn": 0.9,
+   "stream_model+turn": 0.2
+  },
+  "snake-lite@2": {
+   "stream_model+mind": 0.4,
+   "turn_model+turn": 0.6,
+   "stream_model+turn": 0.3
+  }
+ },
+ "realtime_passed": false,
+ "passed": false,
+ "criteria": "정적: stream 평균 ≥ turn 평균 − 0.03; 실시간: 모든 압박 ≥, 압박 > 1에서 >",
+ "seconds": 895.6942167282104
+}

@@ -61,10 +61,20 @@ class StudyResult:
     seconds: float = 0.0
 
 
+class Interrupted(Exception):
+    """유휴 학습 도중 입력이 들어왔다. 후보는 버리고 바로 물러난다."""
+
+
+def _no_check() -> None:
+    return None
+
+
 # 평가 ----------------------------------------------------------------------------------
-def scenario_accuracy(model: StreamLM, scenarios: list[Scenario], spt: float = 0.002) -> float:
+def scenario_accuracy(model: StreamLM, scenarios: list[Scenario], spt: float = 0.002,
+                      check: Callable[[], None] = _no_check) -> float:
     ok = 0
     for sc in scenarios:
+        check()
         res = run_scenario(sc, lambda roles: TorchBackend(model, seconds_per_token=spt),
                            MindConfig(**MIND))
         ok += res.success
@@ -97,9 +107,10 @@ class RegressionSuite:
         self.spt = pressure_spt
         self._cache: dict[str, dict[str, float]] = {}
 
-    def run(self, model: StreamLM) -> dict[str, float]:
-        out = {k: scenario_accuracy(model, scs) for k, scs in self.dialogue.items()}
+    def run(self, model: StreamLM, check: Callable[[], None] = _no_check) -> dict[str, float]:
+        out = {k: scenario_accuracy(model, scs, check=check) for k, scs in self.dialogue.items()}
         for game, seed in self.games:
+            check()
             out[f"{game}:{seed}"] = game_score(model, game, seed, self.frames, self.spt)[0]
         return out
 
@@ -130,7 +141,7 @@ def train_adapter(model: StreamLM, name: str, rows: list[dict], steps: int, lr: 
     for p in frozen:
         p.requires_grad_(False)
     try:
-        chunk = 10
+        chunk = 2  # 입력이 오면 곧바로 멈출 수 있게 자주 확인한다
         done = 0
         while done < steps:
             n = min(chunk, steps - done)
@@ -166,6 +177,9 @@ class IdleLearner:
         self.results: list[StudyResult] = []
         self.policy = self._load_policy()
         self.prepared_hits = [0, 0]  # 적중, 시도
+        self.practice_examples = 30
+        self._stop: Callable[[], bool] | None = None
+        self._candidate: tuple[str, dict[str, float]] | None = None
 
     # 공부법 선택 (6: 공부법 자체 개선) -------------------------------------------------
     def _policy_path(self) -> Path:
@@ -226,13 +240,15 @@ class IdleLearner:
               build: Callable[[], list[dict]], sources: list[str], topic: str,
               adapter_kind: str = "topic", stop: Callable[[], bool] | None = None) -> StudyResult:
         t0 = time.time()
-        reg_before = self.regression.run(self.model)
+        reg_before = self.regression.run(self.model, self._check)
         rows = build()
+        self._check()
         if not rows:
             res = StudyResult(kind, False, before, before, reg_before, reg_before, None,
                               "학습 재료가 없다")
             return self._finish(res, t0)
         base_active = dict(self.bank.active)
+        self._candidate = (name, base_active)
         finished = train_adapter(self.model, name, rows, self.steps, keep_active=base_active,
                                  stop=stop)
         if not finished:
@@ -240,7 +256,8 @@ class IdleLearner:
             self.model.set_active_adapters(base_active)
             return self._finish(StudyResult(kind, False, before, before, note="입력이 들어와 중단"), t0)
         after = target()
-        reg_after = self.regression.run(self.model)
+        reg_after = self.regression.run(self.model, self._check)
+        self._candidate = None
         ok = after >= before + self.min_gain and RegressionSuite.within(reg_before, reg_after,
                                                                          self.tolerance)
         if ok:
@@ -268,6 +285,7 @@ class IdleLearner:
         """일반 과제 복습 재료. 새 어댑터가 기존 능력을 덮어쓰지 않게 섞는다(망각 방지)."""
         rows = []
         for _ in range(n):
+            self._check()
             kind = self.rng.choice(["arith", "reverse", "chat", "name", "correction"])
             sc = make_dialogue(self.rng, kind, self.rng.choice(["turn", "stream"]),
                                vary_names=False)
@@ -281,12 +299,13 @@ class IdleLearner:
         facts = self._facts()
         evals = [make_recall(random.Random(i), k, v, "turn") for i, (k, v) in
                  enumerate(sorted(facts.items()))]
-        target = lambda: scenario_accuracy(self.model, evals)  # noqa: E731
+        target = lambda: scenario_accuracy(self.model, evals, check=self._check)  # noqa: E731
         before = target()
 
         def build() -> list[dict]:
             rows = []
             for i in range(max(24, 6 * len(facts))):
+                self._check()
                 k, v = self.rng.choice(sorted(facts.items()))
                 sc = make_recall(self.rng, k, v, self.rng.choice(["turn", "stream"]),
                                  fillers=self.rng.choice([0, 1, 2]))
@@ -313,6 +332,7 @@ class IdleLearner:
                 greedy = game_score(self.model, g, s, f, spt)[0]
                 tries = []
                 for r in range(rollouts):
+                    self._check()
                     score, tr = game_score(self.model, g, s, f, spt, temperature=1.0,
                                            record=True, sample_seed=r)
                     tries.append((score, r, tr))
@@ -336,7 +356,8 @@ class IdleLearner:
         def build() -> list[dict]:
             rows = []
             # 읽기 → 연습: 설명서의 예시 형식대로 샌드박스에서 직접 써 보고, 실행 결과로 맞은 사용만 남긴다.
-            for i in range(30):
+            for i in range(self.practice_examples):
+                self._check()
                 sc = make_tool_task(self.rng, name, op, self.rng.choice(["turn", "stream"]))
                 res = run_scenario(sc, lambda roles: TeacherBackend(roles), MindConfig(**MIND))
                 ran = any(c.call.tool == name and c.status == "executed"
@@ -346,7 +367,7 @@ class IdleLearner:
             # 고친 설명서를 노트에 적는다(DRAFT의 문서 다시 쓰기).
             self.notes.add(f"{name} 사용법: <call tool={name} op={op}>식</call> → 결과 '= 값'",
                            time.time(), source="self", kind="manual")
-            return rows + self._replay(len(rows) // 2)
+            return rows + self._replay(2 * len(rows))
 
         res = self._gate("practice", f"skill_{name}", target, before, build, [name],
                          f"{name} 도구", adapter_kind="skill", stop=stop)
@@ -390,6 +411,7 @@ class IdleLearner:
         def build() -> list[dict]:
             rows = []
             for i in range(problems):
+                self._check()
                 sc = make_dialogue(self.rng, "arith", "turn", vary_names=False)  # 출제
                 for t in range(tries):  # 풀기 (탐색)
                     res = run_scenario(sc, lambda roles: TorchBackend(
@@ -404,9 +426,30 @@ class IdleLearner:
                           build, ["arith"], "계산", stop=stop)
 
     # 실행 ------------------------------------------------------------------------------
+    def _check(self) -> None:
+        if self._stop is not None and self._stop():
+            raise Interrupted
+
     def run_once(self, kind: str | None = None, stop=None) -> StudyResult:
+        """공부 한 번. 입력이 들어오면(``stop()``이 참) 후보를 버리고 바로 멈춘다."""
         kind = kind or self.choose()
-        return getattr(self, kind)(stop=stop)
+        self._stop, self._candidate = stop, None
+        t0 = time.time()
+        try:
+            return getattr(self, kind)(stop=stop)
+        except Interrupted:
+            if self._candidate is not None:
+                name, active = self._candidate
+                self.model.remove_adapter(name)
+                self.model.set_active_adapters(active)
+                self.model.eval()
+            res = StudyResult(kind, False, 0.0, 0.0, note="입력이 들어와 중단",
+                              seconds=time.time() - t0)
+            self.results.append(res)
+            self.log(f"[유휴 학습] {kind}: 입력이 들어와 중단 ({res.seconds:.1f}s)")
+            return res
+        finally:
+            self._stop = None
 
     def run(self, stop: Callable[[], bool], rounds: int = 1) -> list[StudyResult]:
         out = []

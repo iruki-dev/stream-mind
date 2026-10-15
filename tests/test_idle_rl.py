@@ -120,3 +120,21 @@ def test_rl_rollout_and_update_runs():
     assert len(hist) == 1
     changed = any(not torch.equal(a, b) for a, b in zip(before, m.parameters()))
     assert changed or hist[0].mean_reward == hist[0].mean_reward  # 이점이 모두 0이면 안 바뀔 수 있다
+
+
+def test_idle_learning_stops_as_soon_as_input_arrives(tmp_path):
+    m = tiny()
+    notes = NotesTool()
+    notes.add("주차번호는 4821", 0.0, source="user")
+    learner = IdleLearner(m, AdapterBank(m, tmp_path), notes,
+                          regression=RegressionSuite(n=2, games=()), steps=50)
+    calls = {"n": 0}
+
+    def stop():
+        calls["n"] += 1
+        return calls["n"] > 3  # 몇 번 확인한 뒤 입력이 들어왔다
+
+    res = learner.run_once("consolidate", stop=stop)
+    assert not res.accepted and "중단" in res.note
+    assert m.adapter_names() == []  # 후보 어댑터는 남지 않는다
+    assert res.seconds < 30

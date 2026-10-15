@@ -424,7 +424,8 @@ class Mind:
         if self.cfg.enable_fork:
             times += [r.deadline - self._branch_latency(r) - self._ingest - EPS / 2 for r in reqs]
         if not times:
-            return None
+            # 앞으로 깨어날 사건이 없어도 run()의 끝 시각은 넘기지 않는다 (유휴 학습의 예산이 된다).
+            return None if self._until is None else max(now, self._until)
         wake = max(now, min(times))
         if self._until is not None:
             wake = min(wake, max(now, self._until))

@@ -199,18 +199,23 @@ def gate5(stream: StreamLM, turn: StreamLM, seeds: int = 8) -> dict[str, Any]:
 
 
 # G6: 서빙 + 포크 + 유휴 학습을 함께 ----------------------------------------------------
-def g6_tick_budget(model: StreamLM, work: Path, seconds: float = 40.0,
+def g6_tick_budget(model: StreamLM, work: Path, seconds: float = 45.0,
                    tick_budget: float = 0.2) -> dict[str, Any]:
+    """실제 시계 한 장치에서: 앞 15초는 게임(포크로 행동), 그 뒤 쉬는 동안 유휴 학습,
+    22초와 34초에 메시지가 오면 공부를 멈추고 답한다."""
+    from ..envs import GAMES as ENV_GAMES
+
     clock = WallClock()
-    env = RealtimeEnv(Freeway(seed=5), max_frames=10_000)
+    env = RealtimeEnv(ENV_GAMES["freeway-lite"](seed=5), max_frames=15)
     game = GameTool(env, frame_period=1.0, start=clock.now())
     m = Messenger(reply_sla=6.0)
-    for i, t in enumerate((5.0, 18.0, 31.0)):
-        m.deliver(f"계산: {i + 2}+{i + 3}", at=clock.now() + t)
+    asked = [(22.0, "계산: 12+30"), (34.0, "계산: 7*8")]
+    for t, text in asked:
+        m.deliver(text, at=clock.now() + t)
     notes = NotesTool()
     notes.add("주차번호는 4821", 0.0, source="user")
     bank = AdapterBank(model, work / "g6_adapters")
-    learner = IdleLearner(model, bank, notes, RegressionSuite(n=1, games=()), steps=10)
+    learner = IdleLearner(model, bank, notes, RegressionSuite(n=2, games=()), steps=20)
     ticks: list[float] = []
 
     class TimedMind(Mind):
@@ -224,21 +229,48 @@ def g6_tick_budget(model: StreamLM, work: Path, seconds: float = 40.0,
 
     cfg = MindConfig(**MIND)
     cfg.tick_budget = tick_budget
-    mind = TimedMind(TorchBackend(model), [game, m, notes], clock, cfg)
-    mind.run(until=clock.now() + seconds)
+    cfg.idle_after = 3.0
+    start = clock.now()
+    mind = TimedMind(TorchBackend(model), [game, m, notes], clock, cfg, idle=learner)
+    mind.run(until=start + seconds)
     over = sum(t > tick_budget for t in ticks) / max(1, len(ticks))
+    replies = [(round(t - start, 2), text) for t, text in m.sent]
+    delays = []
+    for (t_ask, _), (t_rep, _) in zip(asked, replies):
+        delays.append(round(t_rep - t_ask, 2))
     peak = 0
     try:
         import resource
         peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss // 1024
     except Exception:  # pragma: no cover
         pass
-    del learner
     return {"ticks": len(ticks), "over_budget_ratio": over,
             "p50_ms": statistics.median(ticks) * 1000 if ticks else 0,
             "p99_ms": sorted(ticks)[int(0.99 * (len(ticks) - 1))] * 1000 if ticks else 0,
             "missed_deadlines": mind.stats.missed_deadlines, "frames": env.frame,
-            "replies": m.sent, "peak_rss_mb": peak, "device": "cpu"}
+            "defaulted_frames": env.defaulted, "replies": replies, "reply_delays": delays,
+            "idle_rounds": mind.stats.idle_rounds, "idle_seconds": round(mind.stats.idle_seconds, 1),
+            "idle_results": [r.note for r in learner.results],
+            "peak_rss_mb": peak, "device": "cpu (4 threads)"}
+
+
+# G8: 확인 가능한 사고 -----------------------------------------------------------------
+def g8_explained(model: StreamLM) -> dict[str, Any]:
+    """학생이 게임과 대화에서 낸 행동 가운데 대응하는 사고 기록이 없는 것의 수."""
+    from ..data.scenarios import Scenario
+
+    total = unexplained = 0
+    runs = [Scenario("game", "stream", game=g, seed=20000 + i, frames=15, until=15.0001)
+            for g in GAMES for i in range(4)]
+    runs += [make_dialogue(random.Random(i), k, "stream")
+             for k in ("arith", "remember", "correction") for i in range(4)]
+    for sc in runs:
+        spt = spt_for_pressure(1.0) if sc.game else 0.002
+        res = run_scenario(sc, lambda roles: TorchBackend(model, seconds_per_token=spt),
+                           MindConfig(**MIND))
+        total += sum(1 for c in res.mind.stats.executed() if not c.scaffold)
+        unexplained += res.mind.stats.unexplained_actions()
+    return {"actions": total, "unexplained": unexplained, "passed": unexplained == 0}
 
 
 # G10: 처음 보는 도구 -------------------------------------------------------------------
@@ -254,7 +286,7 @@ def g10_new_tool(model: StreamLM, work: Path) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["gate2", "gate3", "gate4", "gate5", "g6", "g10"])
+    ap.add_argument("what", choices=["gate2", "gate3", "gate4", "gate5", "g6", "g8", "g10"])
     ap.add_argument("--stream", required=True)
     ap.add_argument("--turn")
     ap.add_argument("--work", default="runs/p3")
@@ -276,6 +308,8 @@ def main(argv: list[str] | None = None) -> int:
         res = gate5(stream, turn)
     elif args.what == "g6":
         res = g6_tick_budget(stream, Path(args.work))
+    elif args.what == "g8":
+        res = g8_explained(stream)
     else:
         res = g10_new_tool(stream, Path(args.work))
     res["seconds"] = time.time() - t0

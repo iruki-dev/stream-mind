@@ -1,11 +1,25 @@
 # Stream-Mind (가칭)
 
 하나의 끝나지 않는 스트림 위에서 입력을 받으면서 생각·출력·행동하는 텍스트 언어 모델을 만드는 프로젝트다.
-이 저장소는 설계안 로드맵의 첫 단계인 **P0 · 오케스트레이터 시제품**을 담고 있다.
-P0은 모델을 학습하지 않는다. 기존 모델 위에 이벤트 루프와 상태 포크를 얹어, 기다려 주지 않는 환경에서
-턴 방식보다 나은지(관문 1)를 확인한다.
+이 저장소는 설계안 로드맵 P0~P4 전체를 담고 있다. P0은 모델 없이 오케스트레이터(이벤트 구동, 상태 포크,
+도구 규격, 위험 등급)를 검증하고, P1~P4는 설계안의 하이브리드 백본을 직접 구현한 소형 모델(StreamLM)을
+스트림 형식으로 학습하고, 기억을 결합하고, 쉬는 시간에 스스로 공부하게 하고, 환경 RL을 한 뒤 관문마다 잰다.
 
-자세한 설계 대응과 측정 결과는 [docs/p0.md](docs/p0.md)에 있다.
+P0 설계 대응과 측정은 [docs/p0.md](docs/p0.md), P1~P4는 [docs/p1-p4.md](docs/p1-p4.md)에 있다.
+
+## 지금 상태
+
+| 단계 | 내용 | 관문 |
+|---|---|---|
+| P0 | 오케스트레이터(이벤트 구동, 상태 포크, 공통 도구 규격, 위험 등급) | 통과 |
+| P1 | StreamLM(Gated DeltaNet + sink·윈도 어텐션, 362만 매개변수)을 스트림 형식으로 SFT | 미달 (정적 −0.04, Snake-lite) |
+| P2 | 압축을 켠 채 학습, 노트 도구 연결 | 통과 (지연·메모리 일정, 장기 회상 유지) |
+| P3 | 유휴 학습(공고화, 실패 복습, 도구 연습, 질문 준비, 자기 출제, 공부법 밴딧), 어댑터 버전·삭제 | 통과 |
+| P4 | 환경 RL(게임·대화), 안전(오염 추적) | 미달 (RL 후보 거부, Snake-lite) |
+
+GPU 없이 CPU 4코어에서 학습한 소형 모델의 결과다. 설계안의 0.5~2B 모델은 이 환경에서 학습할 수 없다.
+목표 G1~G10 판정은 [docs/results.md](docs/results.md), 방법과 해석은 [docs/p1-p4.md](docs/p1-p4.md)에 있다.
+학습한 체크포인트(`runs/`)는 저장소에 넣지 않았다. 측정 결과 JSON은 `runs/results/`에 있다.
 
 ## 들어 있는 것
 
@@ -22,11 +36,17 @@ P0은 모델을 학습하지 않는다. 기존 모델 위에 이벤트 루프와
 | 턴 방식 비교 기준 | `TurnAgent` | `src/stream_mind/baselines.py` |
 | 관문 1 측정 | 벤치마크 | `src/stream_mind/bench/gate1.py` |
 | 소형 하이브리드 체크포인트 연결 | `HFBackend` | `src/stream_mind/model/hf.py` |
+| 백본 (Gated DeltaNet + sink·윈도 어텐션, 어댑터) | `StreamLM` | `src/stream_mind/nn/` |
+| 스트림 규약, 학생 백엔드 | `TextStreamBackend`, `TorchBackend` | `src/stream_mind/model/` |
+| P1 데이터(교사, 누설 검사), SFT | `TeacherBackend`, `train/sft.py` | `src/stream_mind/data/`, `src/stream_mind/train/` |
+| P3 유휴 학습, 어댑터 저장소 | `IdleLearner`, `AdapterBank` | `src/stream_mind/idle/` |
+| P4 환경 RL | `rl_train` | `src/stream_mind/train/rl.py` |
+| 관문 2~5, G6·G8·G10 측정 | 평가기 | `src/stream_mind/bench/gates.py` |
 
 ## 빠른 시작
 
 ```bash
-pip install -e '.[dev]'
+pip install -e '.[dev]'                    # torch 포함
 pytest -q                                  # 단위 테스트
 python -m stream_mind.bench.gate1 --seeds 20   # 관문 1
 ```
@@ -37,6 +57,8 @@ python -m stream_mind.bench.gate1 --seeds 20   # 관문 1
 pip install -e '.[hf]'
 python examples/hf_smoke.py --model Qwen/Qwen3.5-0.8B --seconds 60
 ```
+
+전체 학습·측정 순서는 `scripts/pipeline.sh` (CPU에서 약 12시간).
 
 ## 관문 1 결과 (요약)
 

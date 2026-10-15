@@ -12,11 +12,17 @@ license = { file = "LICENSE" }
 dependencies = []
 
 [project.optional-dependencies]
+# P0 오케스트레이터와 시뮬레이션 백엔드는 표준 라이브러리만 쓴다. StreamLM 학습·추론에는 torch가 필요하다.
+train = ["torch>=2.2"]
 hf = ["torch>=2.2", "transformers>=4.56"]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "torch>=2.2"]
 
 [project.scripts]
 stream-mind-gate1 = "stream_mind.bench.gate1:main"
+stream-mind-gates = "stream_mind.bench.gates:main"
+stream-mind-sft = "stream_mind.train.sft:main"
+stream-mind-rl = "stream_mind.train.rl:main"
+stream-mind-data = "stream_mind.data.build:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
