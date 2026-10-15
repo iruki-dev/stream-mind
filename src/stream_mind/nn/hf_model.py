@@ -18,6 +18,7 @@ Qwen3.5 소형 모델(예: ``Qwen/Qwen3.5-0.8B``)은 설계안의 백본과 같�
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -122,6 +123,52 @@ class HFStreamLM(AdapterMixin, nn.Module):
     def pin(self, name: str, weight: float = 1.0) -> None:
         self.pinned_adapters[name] = weight
         self.set_active_adapters(self.active_adapters())
+
+    # 추론 가속: 늘 켜는 어댑터를 본체 가중치에 접어 넣는다 -----------------------------
+    def fold_pinned(self) -> None:
+        """고정 어댑터(stream)를 본체에 더해 둔다. 층마다 LoRA 계산이 사라져 토큰당 지연이 준다.
+
+        접은 어댑터의 값은 따로 보관해 저장(to_blob)과 되돌리기(unfold)에 쓴다. 학습은 접지 않은 상태에서만.
+        """
+        if getattr(self, "_folded", None):
+            return
+        self._folded = {}
+        with torch.no_grad():
+            for name, w in self.pinned_adapters.items():
+                self._folded[name] = (self.adapter_state(name), w)
+                for _, m in self.lora_modules():
+                    if name in m.lora_a:
+                        m._backup = getattr(m, "_backup", None) or m.base.weight.detach().clone()
+                        d = m.lora_b[name] @ m.lora_a[name] * (m.scales[name] * w)
+                        m.base.weight.add_(d.to(m.base.weight.dtype))
+                self.remove_adapter(name)
+        self._pinned_saved = dict(self.pinned_adapters)
+        self.pinned_adapters = {}
+        self.set_active_adapters(self.active_adapters())
+
+    def unfold(self) -> None:
+        """접은 어댑터를 다시 떼어 학습할 수 있게 한다 (본체 가중치는 보관본으로 정확히 되돌린다)."""
+        folded = getattr(self, "_folded", None)
+        if not folded:
+            return
+        with torch.no_grad():
+            for _, m in self.lora_modules():
+                if getattr(m, "_backup", None) is not None:
+                    m.base.weight.copy_(m._backup)
+                    m._backup = None
+        for name, (tensors, _) in folded.items():
+            self.load_adapter(name, tensors)
+        self.pinned_adapters = dict(self._pinned_saved)
+        self._folded = None
+        self.set_active_adapters(self.active_adapters())
+
+    @contextlib.contextmanager
+    def folded(self):
+        self.fold_pinned()
+        try:
+            yield self
+        finally:
+            self.unfold()
 
     def num_parameters(self) -> int:
         return sum(p.numel() for p in self.lm.parameters())
@@ -286,12 +333,15 @@ class HFStreamLM(AdapterMixin, nn.Module):
 
     # 저장 ------------------------------------------------------------------------------
     def to_blob(self) -> dict[str, Any]:
+        adapters = {n: {k: v.cpu() for k, v in self.adapter_state(n).items()} for n in self.adapter_names()}
+        pinned = dict(self.pinned_adapters)
+        for name, (tensors, w) in (getattr(self, "_folded", None) or {}).items():
+            adapters[name] = {k: v.cpu() for k, v in tensors.items()}  # 접어 둔 어댑터도 저장한다
+            pinned[name] = w
         return {"kind": "hf", "config": asdict(self.cfg),
                 "extra": self.extra.detach().float().cpu(),
-                "adapters": {n: {k: v.cpu() for k, v in self.adapter_state(n).items()}
-                             for n in self.adapter_names()},
-                "pinned": dict(self.pinned_adapters),
-                "active": self.active_adapters()}
+                "adapters": adapters, "pinned": pinned,
+                "active": {k: v for k, v in self.active_adapters().items() if k not in pinned}}
 
     def save(self, path: str | Path) -> None:
         path = Path(path)

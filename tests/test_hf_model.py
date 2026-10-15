@@ -148,3 +148,23 @@ def test_backend_runs_on_hf_model(tok):
     req = ActionRequest("game", "move", 1.0, "k", ["U", "D"])
     choice, tokens, _ = be._choose(st, req)
     assert choice in ("U", "D")
+
+
+def test_fold_pinned_is_exact_and_saves_adapter(tok, tmp_path):
+    m, _ = tiny(tok)
+    with torch.no_grad():
+        for _, mod in m.lora_modules():
+            mod.lora_b["stream"].normal_(0, 0.05)  # 0이 아닌 어댑터
+    ids = _ids(tok, 20)
+    with torch.no_grad():
+        want, _ = m(ids)
+        m.fold_pinned()
+        assert m.adapter_names() == []
+        got, _ = m(ids)
+        assert torch.allclose(got, want, atol=1e-4)
+        m.save(tmp_path / "f.pt")
+        m.unfold()
+        again, _ = m(ids)
+        assert torch.allclose(again, want, atol=1e-6)
+    blob = torch.load(tmp_path / "f.pt", weights_only=True)
+    assert "stream" in blob["adapters"] and blob["pinned"] == {"stream": 1.0}

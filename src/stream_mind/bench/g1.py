@@ -108,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
         from ..nn.tokenizer import set_tokenizer, tokenizer_of
         model = StreamLM.load(args.stream, device=args.device)
         set_tokenizer(tokenizer_of(model).name)
+        if hasattr(model, "fold_pinned"):
+            model.fold_pinned()
         res["stream"] = eval_stream(model, evals)
         print("스트림", res["stream"], flush=True)
     if "original" in res and "stream" in res:

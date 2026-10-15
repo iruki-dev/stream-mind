@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import random
 import statistics
 import time
@@ -129,6 +130,8 @@ def rl_train(model: StreamLM, cfg: RLConfig, sft_episodes: list[Episode] | None 
         stage = min(len(cfg.curriculum) - 1, it * len(cfg.curriculum) // cfg.iterations)
         frames = cfg.curriculum[stage]
         model.eval()
+        folding = model.folded() if hasattr(model, "folded") else contextlib.nullcontext()
+        folding.__enter__()  # 표본 수집은 추론만: 고정 어댑터를 접어 빠르게
         groups: list[list[Rollout]] = []
         for _ in range(cfg.seeds_per_iter):
             game = rng.choice(cfg.games)
@@ -141,6 +144,7 @@ def rl_train(model: StreamLM, cfg: RLConfig, sft_episodes: list[Episode] | None 
             seed = rng.randrange(1 << 20)
             groups.append([dialogue_rollout(model, kind, seed, cfg, rng.randrange(1 << 30), tok)
                            for _ in range(cfg.group)])
+        folding.__exit__(None, None, None)
         model.train()
         opt.zero_grad(set_to_none=True)
         n_terms = 0

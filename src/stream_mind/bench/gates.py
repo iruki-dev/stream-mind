@@ -312,6 +312,9 @@ def main(argv: list[str] | None = None) -> int:
     turn = StreamLM.load(args.turn, device=args.device) if args.turn else None
     from ..nn.tokenizer import set_tokenizer, tokenizer_of
     set_tokenizer(tokenizer_of(stream).name)  # 교사·시간 압박을 학생과 같은 토큰 단위로
+    for m in (stream, turn):
+        if m is not None and hasattr(m, "fold_pinned"):
+            m.fold_pinned()  # 추론만 하므로 고정 어댑터를 본체에 접는다 (토큰당 지연 감소)
     t0 = time.time()
     if args.what == "gate2":
         res = gate2(stream, turn, args.n, args.seeds, games=tuple(args.games))
