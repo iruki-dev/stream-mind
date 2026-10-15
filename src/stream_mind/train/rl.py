@@ -43,14 +43,16 @@ class Rollout:
 
 @dataclass
 class RLConfig:
-    games: tuple[str, ...] = ("freeway", "snake")
+    games: tuple[str, ...] = ("freeway-lite", "snake-lite")
+    dialogue_kinds: tuple[str, ...] = ("arith", "correction")  # 대화 환경: 정답 일치가 보상
+    dialogue_groups: int = 1  # 반복마다 대화 과제 그룹 수
     curriculum: tuple[int, ...] = (8, 12, 16, 20)  # 에피소드 길이(프레임)
     iterations: int = 40
     seeds_per_iter: int = 2
     group: int = 4
     temperature: float = 1.0
     think_temperature: float = 0.0
-    spt_choices: tuple[float, ...] = (0.002, 0.004, 0.008, 0.016)
+    spt_choices: tuple[float, ...] = (0.0045, 0.009, 0.018)  # 압박 0.5 / 1 / 2
     lam: float = 0.5  # 지연 가중치
     mu: float = 0.05  # 토큰 가중치 (천 토큰당)
     lr: float = 3e-4
@@ -73,6 +75,21 @@ def rollout(model: StreamLM, game: str, seed: int, frames: int, spt: float, cfg:
     reward = env.score - cfg.lam * latency - cfg.mu * tokens / 1000
     ep = encode_episode(transcript_to_json(mind.state.transcript, {"kind": "rl"}), tok)
     return Rollout(env.score, latency, tokens, reward, ep)
+
+
+def dialogue_rollout(model: StreamLM, kind: str, seed: int, cfg: RLConfig, sample_seed: int,
+                     tok: ByteTokenizer) -> Rollout:
+    """대화 환경: 턴 모드 과제 하나. 보상 = 정답(0/1) − μ·토큰."""
+    from ..data.scenarios import make_dialogue, run_scenario
+
+    sc = make_dialogue(random.Random(seed), kind, "turn", vary_names=False)
+    res = run_scenario(sc, lambda roles: TorchBackend(
+        model, seconds_per_token=0.002, record=True, temperature=0.7, seed=sample_seed),
+        MindConfig(**MIND))
+    tokens = res.mind.stats.total_tokens
+    reward = float(res.success) - cfg.mu * tokens / 1000
+    ep = encode_episode(transcript_to_json(res.transcript, {"kind": "rl"}), tok)
+    return Rollout(float(res.success), 0.0, tokens, reward, ep)
 
 
 def action_latency(mind: Mind, tool: GameTool) -> float:
@@ -115,6 +132,11 @@ def rl_train(model: StreamLM, cfg: RLConfig, sft_episodes: list[Episode] | None 
             seed = rng.randrange(1 << 20)
             spt = rng.choice(cfg.spt_choices)
             groups.append([rollout(model, game, seed, frames, spt, cfg, rng.randrange(1 << 30), tok)
+                           for _ in range(cfg.group)])
+        for _ in range(cfg.dialogue_groups if cfg.dialogue_kinds else 0):
+            kind = rng.choice(cfg.dialogue_kinds)
+            seed = rng.randrange(1 << 20)
+            groups.append([dialogue_rollout(model, kind, seed, cfg, rng.randrange(1 << 30), tok)
                            for _ in range(cfg.group)])
         model.train()
         opt.zero_grad(set_to_none=True)

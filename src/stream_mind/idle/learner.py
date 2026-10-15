@@ -86,8 +86,8 @@ def game_score(model: StreamLM, game: str, seed: int, frames: int, spt: float,
 class RegressionSuite:
     """고정 회귀 세트: 언어(계산, 거꾸로, 잡담), 기억(이름), 게임 일부. 시드가 고정이다."""
 
-    def __init__(self, n: int = 6, games: tuple[tuple[str, int], ...] = (("freeway", 101),
-                                                                         ("snake", 102)),
+    def __init__(self, n: int = 6, games: tuple[tuple[str, int], ...] = (("freeway-lite", 101),
+                                                                         ("snake-lite", 102)),
                  frames: int = 15, pressure_spt: float = 0.004, seed: int = 4242) -> None:
         rng = random.Random(seed)
         self.dialogue = {k: [make_dialogue(rng, k, "turn", vary_names=False) for _ in range(n)]
@@ -114,7 +114,7 @@ class RegressionSuite:
 
 
 # 어댑터 학습 ----------------------------------------------------------------------------
-def train_adapter(model: StreamLM, name: str, rows: list[dict], steps: int, lr: float = 3e-3,
+def train_adapter(model: StreamLM, name: str, rows: list[dict], steps: int, lr: float = 1.5e-3,
                   rank: int = 8, keep_active: dict[str, float] | None = None,
                   stop: Callable[[], bool] | None = None) -> bool:
     """본체는 고정하고 어댑터 ``name``만 학습한다. 중간에 멈추면 False."""
@@ -264,6 +264,18 @@ class IdleLearner:
         self.log(f"[유휴 학습] {res.kind}: {res.note} ({res.seconds:.0f}s)")
         return res
 
+    def _replay(self, n: int) -> list[dict]:
+        """일반 과제 복습 재료. 새 어댑터가 기존 능력을 덮어쓰지 않게 섞는다(망각 방지)."""
+        rows = []
+        for _ in range(n):
+            kind = self.rng.choice(["arith", "reverse", "chat", "name", "correction"])
+            sc = make_dialogue(self.rng, kind, self.rng.choice(["turn", "stream"]),
+                               vary_names=False)
+            res = run_scenario(sc, lambda roles: TeacherBackend(roles), MindConfig(**MIND))
+            if res.success:
+                rows.append(transcript_to_json(res.transcript, {"kind": "replay"}))
+        return rows
+
     # 1. 공고화 -------------------------------------------------------------------------
     def consolidate(self, stop=None) -> StudyResult:
         facts = self._facts()
@@ -282,7 +294,7 @@ class IdleLearner:
                                    MindConfig(**MIND))
                 if res.success:
                     rows.append(transcript_to_json(res.transcript, {"kind": "recall"}))
-            return rows
+            return rows + self._replay(2 * len(rows))
 
         name = f"memory{len(self.bank.names('topic')) + 1}"
         return self._gate("consolidate", name, target, before, build,
@@ -334,7 +346,7 @@ class IdleLearner:
             # 고친 설명서를 노트에 적는다(DRAFT의 문서 다시 쓰기).
             self.notes.add(f"{name} 사용법: <call tool={name} op={op}>식</call> → 결과 '= 값'",
                            time.time(), source="self", kind="manual")
-            return rows
+            return rows + self._replay(len(rows) // 2)
 
         res = self._gate("practice", f"skill_{name}", target, before, build, [name],
                          f"{name} 도구", adapter_kind="skill", stop=stop)
@@ -386,7 +398,7 @@ class IdleLearner:
                     if res.success:  # 검증: 정답 계산과 일치할 때만
                         rows.append(transcript_to_json(res.transcript, {"kind": "selfplay"}))
                         break
-            return rows
+            return rows + self._replay(len(rows) // 2)
 
         return self._gate("selfplay", f"selfplay{len(self.bank.names()) + 1}", target, before,
                           build, ["arith"], "계산", stop=stop)
