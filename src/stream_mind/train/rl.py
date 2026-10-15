@@ -118,7 +118,8 @@ class RLLog:
 
 
 def rl_train(model: StreamLM, cfg: RLConfig, sft_episodes: list[Episode] | None = None,
-             log: Callable[[str], None] = print) -> list[RLLog]:
+             log: Callable[[str], None] = print,
+             checkpoint: Callable[[int], None] | None = None, save_every: int = 0) -> list[RLLog]:
     rng = random.Random(cfg.seed)
     tok = tokenizer_of(model)
     params = trainable(model)
@@ -178,6 +179,8 @@ def rl_train(model: StreamLM, cfg: RLConfig, sft_episodes: list[Episode] | None 
                       statistics.mean(r.reward for r in flat),
                       statistics.mean(r.latency for r in flat), time.time() - t0)
         history.append(entry)
+        if checkpoint is not None and save_every and (it + 1) % save_every == 0:
+            checkpoint(it + 1)  # 세션 시간 상한에 걸려도 결과가 남게
         log(f"rl {it} frames {frames} score {entry.mean_score:.2f} reward {entry.mean_reward:.2f} "
             f"latency {entry.mean_latency:.2f} terms {n_terms} {entry.seconds:.0f}s")
     return history
@@ -201,10 +204,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default=None, help="cpu | cuda | auto")
+    ap.add_argument("--save-every", type=int, default=4, help="반복 몇 번마다 저장")
     args = ap.parse_args(argv)
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
     model = StreamLM.load(args.init, device=args.device)
+    from ..nn.tokenizer import set_tokenizer
+    set_tokenizer(tokenizer_of(model).name)
     sft = load_episodes(args.sft_data, tokenizer_of(model)) if args.sft_data else None
     cfg = RLConfig(iterations=args.iterations, group=args.group,
                    seeds_per_iter=args.seeds_per_iter, lr=args.lr, seed=args.seed)
@@ -217,7 +223,8 @@ def main(argv: list[str] | None = None) -> int:
             lf.write(msg + "\n")
             lf.flush()
 
-        rl_train(model, cfg, sft, log=log)
+        rl_train(model, cfg, sft, log=log, checkpoint=lambda it: model.save(args.out),
+                 save_every=args.save_every)
     model.save(args.out)
     print(f"저장: {args.out}")
     return 0

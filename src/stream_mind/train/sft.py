@@ -260,6 +260,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--rank", type=int, default=32, help="공개 체크포인트 위 스트림 어댑터 랭크")
     ap.add_argument("--micro-batch", type=int, default=8)
     ap.add_argument("--warmup", type=int, default=50)
+    ap.add_argument("--log-every", type=int, default=25)
     args = ap.parse_args(argv)
     torch.manual_seed(args.seed)
     torch.set_num_threads(args.threads)
@@ -294,7 +295,7 @@ def main(argv: list[str] | None = None) -> int:
 
         train(model, train_eps, args.steps, args.lr, args.bptt, args.batch, args.seed, log=log,
               checkpoint=lambda step: model.save(args.out), save_every=args.save_every,
-              micro_batch=args.micro_batch, warmup=args.warmup)
+              micro_batch=args.micro_batch, warmup=args.warmup, log_every=args.log_every)
         log(f"검증 손실 {evaluate(model, held, args.bptt):.4f}")
     model.save(args.out)
     return 0
