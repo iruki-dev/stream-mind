@@ -168,3 +168,29 @@ def test_fold_pinned_is_exact_and_saves_adapter(tok, tmp_path):
         assert torch.allclose(again, want, atol=1e-6)
     blob = torch.load(tmp_path / "f.pt", weights_only=True)
     assert "stream" in blob["adapters"] and blob["pinned"] == {"stream": 1.0}
+
+
+@pytest.mark.parametrize("window", [64, 8])
+def test_fast_decode_matches_normal_path(tok, window, monkeypatch):
+    """빠른 생성 경로(고정 버퍼, CPU에서는 그래프 없이)가 보통 경로와 같은 값을 낸다. 창이 넘친 뒤도."""
+    m, _ = tiny(tok, window=window, sinks=2)
+    with torch.no_grad():
+        for _, mod in m.lora_modules():
+            mod.lora_b["stream"].normal_(0, 0.05)
+    ids = _ids(tok, 30)[:1]
+    monkeypatch.setenv("STREAM_MIND_FAST_DECODE", "0")
+    with torch.no_grad():
+        _, st = m(ids[:, :5])
+        ref, st_ref = [], st
+        for i in range(5, 30):
+            o, st_ref = m(ids[:, i:i + 1], st_ref)
+            ref.append(o)
+        monkeypatch.setenv("STREAM_MIND_FAST_DECODE", "1")
+        got, st_f = [], st
+        for i in range(5, 30):
+            o, st_f = m(ids[:, i:i + 1], st_f)
+            got.append(o)
+    assert torch.allclose(torch.cat(got, 1), torch.cat(ref, 1), atol=1e-4)
+    for a, b in zip(st_f.layers, st_ref.layers):
+        for k in a:
+            assert a[k].shape == b[k].shape and torch.allclose(a[k], b[k], atol=1e-4)

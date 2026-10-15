@@ -4,6 +4,11 @@ P=$(dirname $(find $IN -name stage4_stream.pt | head -1))
 S3=$P/stage3_stream.pt; S4=$P/stage4_stream.pt; T2=$P/stage2_turn.pt
 R=$OUT/results; G="python -m stream_mind.bench.gates"
 run() { "$@" || echo "실패: $*"; }  # 한 측정이 실패해도 나머지는 계속
+if CUDA_VISIBLE_DEVICES=0 python kaggle/fast_check.py --model $S4 --out $OUT/fast_check.json; then
+  export STREAM_MIND_FAST_DECODE=auto
+else
+  export STREAM_MIND_FAST_DECODE=0
+fi
 (
   export CUDA_VISIBLE_DEVICES=0
   run $G gate5 --stream $S4 --turn $T2 --seeds 4 --out-dir $R --device cuda

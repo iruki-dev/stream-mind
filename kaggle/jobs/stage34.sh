@@ -5,6 +5,12 @@ P=$(dirname $(find $IN -name stage2_stream.pt | head -1))
 R=$OUT/results
 run() { "$@" || echo "실패: $*"; }
 head -n 300 $D/replay_stream.jsonl > /tmp/replay300.jsonl
+# 빠른 생성 경로(CUDA 그래프)를 실제 모델로 확인한다. 다르면 끈다.
+if CUDA_VISIBLE_DEVICES=0 python kaggle/fast_check.py --model $P/stage2_stream.pt --out $OUT/fast_check.json; then
+  export STREAM_MIND_FAST_DECODE=auto
+else
+  export STREAM_MIND_FAST_DECODE=0
+fi
 (
   export CUDA_VISIBLE_DEVICES=0
   python -m stream_mind.train.sft --init $P/stage2_stream.pt --bptt 256 --micro-batch 2 \

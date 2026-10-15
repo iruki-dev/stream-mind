@@ -328,8 +328,25 @@ class HFStreamLM(AdapterMixin, nn.Module):
 
     def forward(self, ids: torch.Tensor, state: StreamState | None = None,
                 times: torch.Tensor | None = None, chunked: bool = True):
+        if (state is not None and ids.shape == (1, 1) and not self.training
+                and not torch.is_grad_enabled() and self._fast_enabled()):
+            return self.fast_decoder().step(ids.to(self.device), state)
         h, st = self.hidden(ids, state, times, chunked)
         return self.project(h), st
+
+    # 빠른 생성 경로 (GPU: CUDA 그래프) -------------------------------------------------
+    def _fast_enabled(self) -> bool:
+        import os
+        flag = os.environ.get("STREAM_MIND_FAST_DECODE", "auto")
+        if flag == "0":
+            return False
+        return flag == "1" or self.device.type == "cuda"
+
+    def fast_decoder(self):
+        from .fast_decode import FastDecoder
+        if getattr(self, "_fast", None) is None:
+            self._fast = FastDecoder(self)
+        return self._fast
 
     # 저장 ------------------------------------------------------------------------------
     def to_blob(self) -> dict[str, Any]:
