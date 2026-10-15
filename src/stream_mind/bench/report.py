@@ -29,6 +29,15 @@ def build(d: Path = Path("runs/results")) -> str:
         s = g2["static"]
         rows.append(("G1 일반 LLM 대체", "턴 모드 과제 평균 정답률 (스트림 모델 / 턴 기준 모델)",
                      f"{s['stream_mean']:.2f} / {s['turn_mean']:.2f}", s["passed"]))
+    g1o, g1s = _load(d, "g1_original"), _load(d, "g1_stage4") or _load(d, "g1_stage2")
+    if g1o and g1s:
+        o, st = g1o["original"], g1s["stream"]
+        diffs = {b: st[b] - o[b] for b in o if b in st}
+        mean_d = statistics.mean(diffs.values())
+        rows.append(("G1 표준 벤치 (원본 대비)", "턴 모드 GSM8K·GSM8K-ko·MMLU·KMMLU 정답률 (스트림 / 원본, 벤치당 "
+                     f"{g1s.get('n_per_bench', '?')}문항)",
+                     ", ".join(f"{b} {st[b]:.2f}/{o[b]:.2f}" for b in sorted(diffs)) + f", 평균 차 {mean_d:+.3f}",
+                     mean_d >= -0.03 and min(diffs.values()) >= -0.10))
     if g5:
         ts, tt = g5["terminal_stream"]["accuracy"], g5["terminal_turn"]["accuracy"]
         rows.append(("G2 터미널", "터미널 과제 정답률 (스트림 / 턴 기준)",
@@ -53,7 +62,7 @@ def build(d: Path = Path("runs/results")) -> str:
                      " → ".join(f"{p['median_ms']:.1f}ms" for p in lat)
                      + f", {lat[-1]['state_bytes'] // 1024}KB 고정", g3["latency_flat"]))
     if g6:
-        rows.append(("G6 단일 장치 실시간", "서빙+포크+유휴 학습 동시(CPU): tick 예산 200ms 초과 비율, 놓친 마감, 답장 지연",
+        rows.append(("G6 단일 장치 실시간", f"서빙+포크+유휴 학습 동시({g6.get('device', 'CPU')}): tick 예산 200ms 초과 비율, 놓친 마감, 답장 지연",
                      f"{g6['over_budget_ratio']:.1%}, p50 {g6['p50_ms']:.0f}ms, p99 {g6['p99_ms']:.0f}ms, "
                      f"마감 놓침 {g6['missed_deadlines']}, 답장 {g6.get('reply_delays')}s, "
                      f"유휴 학습 {g6.get('idle_rounds')}회",

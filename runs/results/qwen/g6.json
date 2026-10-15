@@ -1,0 +1,34 @@
+{
+ "ticks": 38,
+ "over_budget_ratio": 0.7368421052631579,
+ "p50_ms": 291.6358165002748,
+ "p99_ms": 988.935606999803,
+ "missed_deadlines": 3,
+ "frames": 15,
+ "defaulted_frames": 5,
+ "replies": [
+  [
+   24.53,
+   "42"
+  ],
+  [
+   35.25,
+   "56"
+  ]
+ ],
+ "reply_delays": [
+  2.53,
+  1.25
+ ],
+ "idle_rounds": 3,
+ "idle_seconds": 28.6,
+ "idle_results": [
+  "입력이 들어와 중단",
+  "입력이 들어와 중단",
+  "입력이 들어와 중단"
+ ],
+ "peak_rss_mb": 3804,
+ "device": "Tesla T4",
+ "peak_gpu_mb": 2908,
+ "seconds": 46.577048778533936
+}

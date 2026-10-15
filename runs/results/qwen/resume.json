@@ -1,0 +1,8 @@
+{
+ "loss_saved": 0.43021465663252206,
+ "loss_loaded": 0.43021465663252206,
+ "loss_loaded_folded": 0.4302146681423845,
+ "trainable_after_load": 5120,
+ "passed": true,
+ "seconds_total": 59
+}

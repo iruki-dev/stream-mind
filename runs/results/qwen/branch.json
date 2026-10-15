@@ -1,0 +1,20 @@
+{
+ "episodes": 2,
+ "branches": 40,
+ "tokens": 5101,
+ "branch_loss_before": 3.641566038131714,
+ "branch_loss_after": 0.002247006235120352,
+ "total_loss": [
+  1.767,
+  1.153,
+  0.953,
+  0.593,
+  0.363,
+  0.224,
+  0.138,
+  0.102
+ ],
+ "seconds": 1255,
+ "passed": true,
+ "seconds_total": 1306
+}

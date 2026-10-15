@@ -1,0 +1,9 @@
+{
+ "prefill_tokens": 880,
+ "ms_per_token_normal": 53.54,
+ "ms_per_token_fast": 16.7,
+ "max_logit_diff": 0.0,
+ "top1_agree": 1.0,
+ "state_equal": true,
+ "ok": true
+}

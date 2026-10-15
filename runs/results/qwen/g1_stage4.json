@@ -1,0 +1,9 @@
+{
+ "n_per_bench": 100,
+ "stream": {
+  "gsm8k": 0.48,
+  "gsm8k_ko": 0.12,
+  "kmmlu": 0.09,
+  "mmlu": 0.54
+ }
+}
