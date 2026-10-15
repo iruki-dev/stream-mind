@@ -13,7 +13,7 @@ from typing import Iterable
 
 from .clock import Clock
 from .model.base import Backend
-from .stream import ToolCall
+from .stream import CallRecord, Origin, ToolCall
 from .tools.base import Tool
 
 
@@ -62,17 +62,23 @@ class TurnAgent:
             if res.converged or res.wait or res.tokens == 0:
                 break
         # 행동 하나. 지금 걸린 요청에, 생각을 시작할 때의 관측으로 세운 계획으로 답한다.
+        # Mind와 같은 규약: 상태를 복사한 분기에서 행동을 만들고, 실행 기록을 원 스트림에 넣는다.
         now = self.clock.now()
         for tool in self.tools.values():
             req = tool.action_request(now)
             if req is None:
                 continue
-            res = self.backend.act(self.state, req)
+            branch, fork_cost = self.backend.fork(self.state)
+            res = self.backend.act(branch, req)
             self.branch_tokens += res.tokens
-            self.clock.advance(res.seconds)
+            self.clock.advance(fork_cost + res.seconds)
             if res.call is not None:
-                tool.invoke(res.call, self.clock.now())
-                self.actions.append((self.clock.now(), res.call))
+                at = self.clock.now()
+                result = tool.invoke(res.call, at)
+                self.actions.append((at, res.call))
+                self.clock.advance(self.backend.observe(self.state, CallRecord(
+                    at, res.call, Origin.FORK, "executed" if result.ok else "error",
+                    int(tool.risk(res.call)))))
         return True
 
     def run(self, until: float | None = None) -> None:

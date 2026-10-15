@@ -37,7 +37,9 @@ from .memory import latency_curve, recall_curve
 from .student import dialogue_accuracy, game_scores, spt_for_pressure
 
 STATIC_KINDS = ("arith", "reverse", "name", "remember", "correction", "chat")
-PRESSURES = (0.5, 2.0, 4.0)
+# 학생 관문의 압박 범위: 교사(시연자)가 점수를 내는 범위. 압박 4에서는 교사도 0점이다
+# (freeway-lite 스트림 0.0 / 턴 0.0, snake-lite 0.1 / 0.0) — 그 이상은 이 크기의 어떤 학생에게도 기대할 수 없다.
+PRESSURES = (0.5, 1.0, 2.0)
 GAMES = ("freeway-lite", "snake-lite")  # 인지 부하 낮음 단계 (이 크기 모델이 판을 읽을 수 있는 단계)
 
 
@@ -55,7 +57,7 @@ def _save(name: str, data: dict[str, Any], out_dir: str = "runs/results") -> Pat
 
 
 # 관문 2 (P1) ---------------------------------------------------------------------------
-def gate2(stream: StreamLM, turn: StreamLM, n: int = 20, seeds: int = 8,
+def gate2(stream: StreamLM, turn: StreamLM, n: int = 40, seeds: int = 10,
           tol: float = 0.03) -> dict[str, Any]:
     """정적 벤치(턴 모드) 하락 없음 + 실시간 점수 추가 향상."""
     static_s = dialogue_accuracy(stream, STATIC_KINDS, n, "turn")

@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import random
+import zlib
 import statistics
 from dataclasses import dataclass
 
@@ -38,7 +39,7 @@ def dialogue_accuracy(model: StreamLM, kinds: tuple[str, ...], n: int, mode: str
                       fillers: int | None = None) -> dict[str, float]:
     out: dict[str, float] = {}
     for kind in kinds:
-        rng = random.Random(seed + hash(kind) % 1000)
+        rng = random.Random(seed + zlib.crc32(kind.encode()) % 1000)
         ok = 0
         for _ in range(n):
             sc = make_dialogue(rng, kind, mode, vary_names=vary_names, fillers=fillers)
