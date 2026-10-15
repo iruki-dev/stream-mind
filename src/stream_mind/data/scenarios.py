@@ -203,7 +203,7 @@ def make_dialogue(rng: random.Random, kind: str, mode: str = "stream", vary_name
 
 def make_game(rng: random.Random, game: str | None = None, frames: int = 40,
               with_message: bool = False, mode: str = "stream") -> Scenario:
-    game = game or rng.choice(list(GAMES))
+    game = game or rng.choice(["freeway", "snake"])
     msgs = []
     expected = None
     if with_message:

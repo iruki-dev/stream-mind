@@ -70,16 +70,18 @@ def reverse_row(rng: random.Random) -> list[tuple[str, bool]]:
     return segs
 
 
-def board_row(rng: random.Random) -> list[tuple[str, bool]]:
+def board_row(rng: random.Random, games: tuple[str, ...] = ("freeway", "snake")
+              ) -> list[tuple[str, bool]]:
     """판 읽기: 프레임을 보고 행동마다 다음 프레임에 안전한지 적는다 (게임 판단의 기초)."""
     from ..data.teacher import judge_safe
-    from ..envs import Freeway, Snake
+    from ..envs import GAMES
 
-    if rng.random() < 0.5:
-        model = Freeway(seed=rng.randrange(1 << 16))
-        state = type(model.initial())(t=rng.randrange(60), y=rng.randrange(9))
+    name = rng.choice(games)
+    if name.startswith("freeway"):
+        model = GAMES[name](seed=rng.randrange(1 << 16))
+        state = type(model.initial())(t=rng.randrange(60), y=rng.randrange(model.top))
     else:
-        model = Snake(seed=rng.randrange(1 << 16))
+        model = GAMES[name](seed=rng.randrange(1 << 16))
         state = model.initial()
         for _ in range(rng.randrange(25)):
             options = [a for a in model.actions if judge_safe(model, state, a)]
@@ -94,12 +96,13 @@ def board_row(rng: random.Random) -> list[tuple[str, bool]]:
     return [("<bos>" + model.render(state) + "\n판단 ", False), (marks + "\n", True)]
 
 
-def build(n: int, seed: int = 0, board: float = 0.0) -> list[dict]:
+def build(n: int, seed: int = 0, board: float = 0.0,
+          games: tuple[str, ...] = ("freeway", "snake")) -> list[dict]:
     rng = random.Random(seed)
     rows = []
     for i in range(n):
         if rng.random() < board:
-            segs = board_row(rng)
+            segs = board_row(rng, games)
         else:
             r = rng.random()
             segs = copy_row(rng) if r < 0.5 else arith_row(rng) if r < 0.8 else reverse_row(rng)
@@ -113,10 +116,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--n", type=int, default=60000)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--board", type=float, default=0.0, help="판 읽기 행의 비율")
+    ap.add_argument("--games", nargs="*", default=["freeway", "snake"])
     args = ap.parse_args(argv)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:
-        for row in build(args.n, args.seed, args.board):
+        for row in build(args.n, args.seed, args.board, tuple(args.games)):
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
     return 0
 

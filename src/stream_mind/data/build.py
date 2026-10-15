@@ -83,7 +83,8 @@ def _turn_game(sc: Scenario, spt: float) -> dict[str, Any]:
                                                        "spt": spt})
 
 
-def jobs(preset: str, n_dialogue: int, n_game: int, seed: int) -> tuple[list, list]:
+def jobs(preset: str, n_dialogue: int, n_game: int, seed: int,
+         game_names: tuple[str, ...] = ("freeway", "snake")) -> tuple[list, list]:
     rng = random.Random(seed)
     dialogue, games = [], []
     for i in range(n_dialogue):
@@ -93,15 +94,15 @@ def jobs(preset: str, n_dialogue: int, n_game: int, seed: int) -> tuple[list, li
         mode = "turn" if preset == "turn" or rng.random() < 0.3 else "stream"
         dialogue.append((rng.randrange(1 << 30), kind, mode))
     for i in range(n_game):
-        game = list(GAMES)[i % len(GAMES)]
+        game = game_names[i % len(game_names)]
         with_msg = preset == "stream" and rng.random() < 0.3
         games.append((rng.randrange(1 << 30), game, 20, with_msg, preset))
     return dialogue, games
 
 
 def build(preset: str, out: Path, n_dialogue: int, n_game: int, seed: int = 0,
-          workers: int = 4) -> dict[str, int]:
-    dialogue, games = jobs(preset, n_dialogue, n_game, seed)
+          workers: int = 4, game_names: tuple[str, ...] = ("freeway", "snake")) -> dict[str, int]:
+    dialogue, games = jobs(preset, n_dialogue, n_game, seed, game_names)
     out.parent.mkdir(parents=True, exist_ok=True)
     kept = dropped = 0
     with mp.get_context("fork").Pool(workers) as pool, out.open("w", encoding="utf-8") as f:
@@ -134,8 +135,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--games", type=int, default=300)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--game-names", nargs="*", default=["freeway", "snake"])
     args = ap.parse_args(argv)
-    stats = build(args.preset, Path(args.out), args.dialogue, args.games, args.seed, args.workers)
+    stats = build(args.preset, Path(args.out), args.dialogue, args.games, args.seed, args.workers,
+                  tuple(args.game_names))
     print(json.dumps(stats))
     return 0
 

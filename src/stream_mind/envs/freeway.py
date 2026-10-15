@@ -36,12 +36,15 @@ class Freeway(GameModel[FreewayState]):
     name = "freeway"
     actions = ("U", "D", "S")
 
-    def __init__(self, seed: int = 0, width: int = 12, max_speed: int = 4) -> None:
+    def __init__(self, seed: int = 0, width: int = 12, max_speed: int = 4, lanes: int = 8,
+                 max_cars: int = 2) -> None:
         self.width = width
+        self.top = lanes + 1  # 도착 행
+        self.max_cars = max_cars
         rng = random.Random(seed)
         while True:
             lanes = []
-            for _ in range(1, TOP):
+            for _ in range(1, self.top):
                 while True:
                     lane = self._random_lane(rng, max_speed)
                     # 0열이 거의 막힌 차선은 다시 뽑는다. 한 주기의 절반 이상은 비어 있어야 한다.
@@ -56,7 +59,8 @@ class Freeway(GameModel[FreewayState]):
     def _random_lane(self, rng: random.Random, max_speed: int) -> Lane:
         speed = rng.choice([s for s in range(-max_speed, max_speed + 1) if s != 0])
         first = rng.randrange(self.width)
-        starts = [first] if rng.random() < 0.5 else [first, (first + self.width // 2) % self.width]
+        two = self.max_cars > 1 and rng.random() >= 0.5
+        starts = [first, (first + self.width // 2) % self.width] if two else [first]
         return Lane(speed, tuple((x, rng.choice([2, 3, 4])) for x in starts))
 
     def _blocked_ratio(self, lane: Lane) -> float:
@@ -74,10 +78,10 @@ class Freeway(GameModel[FreewayState]):
             nxt = []
             for y, t in frontier:
                 for dy in (1, 0, -1):
-                    y2, t2 = min(TOP, max(0, y + dy)), t + 1
+                    y2, t2 = min(self.top, max(0, y + dy)), t + 1
                     if self.occupied(y2, t2):
                         continue
-                    if y2 == TOP:
+                    if y2 == self.top:
                         return True
                     key = (y2, t2 % self.width)
                     if key not in seen:
@@ -87,7 +91,7 @@ class Freeway(GameModel[FreewayState]):
         return False
 
     def occupied(self, y: int, t: int, col: int = 0) -> bool:
-        if not 1 <= y < TOP:
+        if not 1 <= y < self.top:
             return False
         lane = self.lanes[y - 1]
         return any((col - (x + lane.speed * t)) % self.width < length for x, length in lane.cars)
@@ -96,11 +100,11 @@ class Freeway(GameModel[FreewayState]):
         return FreewayState()
 
     def step(self, s: FreewayState, action: str) -> tuple[FreewayState, float, bool]:
-        y = min(TOP, max(0, s.y + _DY.get(action, 0)))
+        y = min(self.top, max(0, s.y + _DY.get(action, 0)))
         t = s.t + 1
         if self.occupied(y, t):
             return FreewayState(t, 0, s.score, s.hits + 1), 0.0, False
-        if y == TOP:
+        if y == self.top:
             return FreewayState(t, 0, s.score + 1, s.hits), 1.0, False
         return FreewayState(t, y, s.score, s.hits), 0.0, False
 
@@ -115,7 +119,7 @@ class Freeway(GameModel[FreewayState]):
 
     def render(self, s: FreewayState) -> str:
         rows = [f"t={s.t} score={s.score} hit={s.hits} @y={s.y}"]
-        for y in range(TOP, -1, -1):
+        for y in range(self.top, -1, -1):
             cells = []
             for col in range(self.width):
                 if col == 0 and y == s.y:
@@ -124,6 +128,6 @@ class Freeway(GameModel[FreewayState]):
                     cells.append("#")
                 else:
                     cells.append(".")
-            label = "" if y in (0, TOP) else f"{self.lanes[y - 1].speed:+d}"
+            label = "" if y in (0, self.top) else f"{self.lanes[y - 1].speed:+d}"
             rows.append(f"{y}|{''.join(cells)}|{label}")
         return "\n".join(rows)

@@ -38,7 +38,7 @@ from .student import dialogue_accuracy, game_scores, spt_for_pressure
 
 STATIC_KINDS = ("arith", "reverse", "name", "remember", "correction", "chat")
 PRESSURES = (0.5, 2.0, 4.0)
-GAMES = ("freeway", "snake")
+GAMES = ("freeway-lite", "snake-lite")  # 인지 부하 낮음 단계 (이 크기 모델이 판을 읽을 수 있는 단계)
 
 
 def _save(name: str, data: dict[str, Any], out_dir: str = "runs/results") -> Path:

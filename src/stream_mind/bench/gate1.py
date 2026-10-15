@@ -79,7 +79,7 @@ def run_one(game: str, mode: str, seed: int, pressure: float, frames: int = 100,
                      env.frame, min(clock.now(), until))
 
 
-def run_grid(seeds: int = 10, games=tuple(GAMES), modes=MODES, pressures=None,
+def run_grid(seeds: int = 10, games=("freeway", "snake"), modes=MODES, pressures=None,
              frames: int = 100) -> list[RunResult]:
     pressures = pressures or PRESSURES
     out = []
@@ -168,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--seeds", type=int, default=10)
     ap.add_argument("--frames", type=int, default=100)
-    ap.add_argument("--games", nargs="*", default=list(GAMES))
+    ap.add_argument("--games", nargs="*", default=["freeway", "snake"])
     ap.add_argument("--modes", nargs="*", default=list(MODES))
     args = ap.parse_args(argv)
     results = run_grid(args.seeds, args.games, args.modes, frames=args.frames)
