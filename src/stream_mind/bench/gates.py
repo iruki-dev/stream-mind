@@ -252,7 +252,15 @@ def g6_tick_budget(model: StreamLM, work: Path, seconds: float = 45.0,
             "defaulted_frames": env.defaulted, "replies": replies, "reply_delays": delays,
             "idle_rounds": mind.stats.idle_rounds, "idle_seconds": round(mind.stats.idle_seconds, 1),
             "idle_results": [r.note for r in learner.results],
-            "peak_rss_mb": peak, "device": "cpu (4 threads)"}
+            "peak_rss_mb": peak, **_device_info(model)}
+
+
+def _device_info(model) -> dict[str, Any]:
+    dev = model.device
+    if dev.type == "cuda":
+        return {"device": torch.cuda.get_device_name(dev),
+                "peak_gpu_mb": round(torch.cuda.max_memory_allocated(dev) / 2 ** 20)}
+    return {"device": f"cpu ({torch.get_num_threads()} threads)"}
 
 
 # G8: 확인 가능한 사고 -----------------------------------------------------------------

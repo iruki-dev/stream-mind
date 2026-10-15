@@ -6,7 +6,7 @@ python -m stream_mind.train.sft --init $P/stage2_stream.pt --window 1024 --bptt 
   --data $D/sessions.jsonl $D/replay_stream.jsonl --out $OUT/stage3_stream.pt \
   --steps __S3__ --batch 8 --lr 1e-4 --warmup 10 --save-every 50 2>&1 | tee $OUT/stage3.log
 python -m stream_mind.train.rl --init $OUT/stage3_stream.pt --out $OUT/stage4_stream.pt \
-  --sft-data $D/replay_stream.jsonl --iterations __IT__ --group 4 --seeds-per-iter 2 --lr 2e-5 \
+  --sft-data $D/replay_stream.jsonl --iterations __IT__ --group 4 --seeds-per-iter 2 --lr 5e-5 \
   2>&1 | tee $OUT/stage4.log
 cp $P/stage2_turn.pt $OUT/ 2>/dev/null || true
 ls -la $OUT
