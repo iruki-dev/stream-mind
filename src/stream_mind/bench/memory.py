@@ -41,7 +41,7 @@ def latency_curve(model: StreamLM, lengths=(1_000, 10_000, 50_000), ticks: int =
     for target in lengths:
         # 목표 길이까지 관측을 덩어리로 밀어 넣는다(빠르게 채우기).
         while fed < target:
-            n = min(4096, target - fed)
+            n = min(1024, target - fed)
             ids = [rng.randrange(256) for _ in range(n)]
             backend._run(state.model, ids)
             fed += n

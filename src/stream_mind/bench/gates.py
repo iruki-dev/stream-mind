@@ -58,14 +58,14 @@ def _save(name: str, data: dict[str, Any], out_dir: str = "runs/results") -> Pat
 
 # 관문 2 (P1) ---------------------------------------------------------------------------
 def gate2(stream: StreamLM, turn: StreamLM, n: int = 40, seeds: int = 10,
-          tol: float = 0.03) -> dict[str, Any]:
+          tol: float = 0.03, games: tuple[str, ...] = GAMES) -> dict[str, Any]:
     """정적 벤치(턴 모드) 하락 없음 + 실시간 점수 추가 향상."""
     static_s = dialogue_accuracy(stream, STATIC_KINDS, n, "turn")
     static_t = dialogue_accuracy(turn, STATIC_KINDS, n, "turn")
     ms, mt = statistics.mean(static_s.values()), statistics.mean(static_t.values())
     realtime = {}
     ok_rt = True
-    for game in GAMES:
+    for game in games:
         for p in PRESSURES:
             s = game_scores(stream, game, "stream", p, range(seeds)).mean
             t = game_scores(turn, game, "turn", p, range(seeds)).mean
@@ -178,10 +178,11 @@ def terminal_suite(model: StreamLM, n: int = 6) -> dict[str, Any]:
     return {"accuracy": out, "unsafe_executions": unsafe, "hidden_instruction_followed": followed}
 
 
-def gate5(stream: StreamLM, turn: StreamLM, seeds: int = 8) -> dict[str, Any]:
+def gate5(stream: StreamLM, turn: StreamLM, seeds: int = 8,
+          game_names: tuple[str, ...] = GAMES) -> dict[str, Any]:
     games = {}
     ok = True
-    for game in GAMES:
+    for game in game_names:
         for p in PRESSURES:
             s = game_scores(stream, game, "stream", p, range(seeds)).mean
             t = game_scores(turn, game, "turn", p, range(seeds)).mean
@@ -293,20 +294,26 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--name")
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--device", default=None, help="cpu | cuda | auto")
+    ap.add_argument("--n", type=int, default=40, help="관문 2: 대화 과제마다 문항 수")
+    ap.add_argument("--seeds", type=int, default=10, help="관문 2·5: 게임 시드 수")
+    ap.add_argument("--games", nargs="*", default=list(GAMES))
+    ap.add_argument("--out-dir", default="runs/results")
     args = ap.parse_args(argv)
     torch.set_num_threads(args.threads)
     stream = StreamLM.load(args.stream, device=args.device)
     turn = StreamLM.load(args.turn, device=args.device) if args.turn else None
+    from ..nn.tokenizer import set_tokenizer, tokenizer_of
+    set_tokenizer(tokenizer_of(stream).name)  # 교사·시간 압박을 학생과 같은 토큰 단위로
     t0 = time.time()
     if args.what == "gate2":
-        res = gate2(stream, turn)
+        res = gate2(stream, turn, args.n, args.seeds, games=tuple(args.games))
     elif args.what == "gate3":
         res = gate3(stream)
     elif args.what == "gate4":
         res = gate4(stream, Path(args.work))
         stream.save(Path(args.work) / "model_with_adapters_base.pt")
     elif args.what == "gate5":
-        res = gate5(stream, turn)
+        res = gate5(stream, turn, args.seeds, tuple(args.games))
     elif args.what == "g6":
         res = g6_tick_budget(stream, Path(args.work))
     elif args.what == "g8":
@@ -314,7 +321,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         res = g10_new_tool(stream, Path(args.work))
     res["seconds"] = time.time() - t0
-    path = _save(args.name or args.what, res)
+    path = _save(args.name or args.what, res, args.out_dir)
     print(json.dumps(res, ensure_ascii=False, indent=1, default=lambda o: asdict(o)
                      if is_dataclass(o) else str(o))[:6000])
     print(f"저장: {path}")

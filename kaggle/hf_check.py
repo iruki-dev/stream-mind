@@ -60,7 +60,7 @@ def main() -> None:
     torch.cuda.reset_peak_memory_stats()
     t0 = time.time()
     hist = train(half, eps, 6, lr=2e-4, bptt=256, episodes_per_step=16, log=None, warmup=1,
-                 micro_batch=8)
+                 micro_batch=4)
     torch.cuda.synchronize()
     sec = (time.time() - t0) / 6
     toks = sum(len(e.ids) for e in eps[:16])

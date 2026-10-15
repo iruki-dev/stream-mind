@@ -153,7 +153,8 @@ def parse_answer(src: str, text: str) -> tuple[str, str] | None:
 
 
 def teach(prompts: list[dict], teacher: str, out: Path, batch: int = 32, max_new: int = 320,
-          device: str = "cuda", shard: tuple[int, int] = (0, 1), log=print) -> dict[str, int]:
+          device: str = "cuda", shard: tuple[int, int] = (0, 1), log=print,
+          token_budget: int = 12000) -> dict[str, int]:
     """교사가 질문에 답한다. 수학은 정답과 맞는 답만 남긴다."""
     import torch
     from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
@@ -171,9 +172,19 @@ def teach(prompts: list[dict], teacher: str, out: Path, batch: int = 32, max_new
     kept = dropped = 0
     t0 = time.time()
     out.parent.mkdir(parents=True, exist_ok=True)
+    # 묶음 크기는 토큰 예산으로 정한다 (긴 질문이 모이면 메모리가 넘친다).
+    batches, cur = [], []
+    for p in items:
+        n = len(tok.encode(p["question"])) + 80 + max_new
+        if cur and (len(cur) >= batch or (len(cur) + 1) * n > token_budget):
+            batches.append(cur)
+            cur = []
+        cur.append(p)
+    if cur:
+        batches.append(cur)
+    done = 0
     with out.open("w", encoding="utf-8") as f:
-        for s in range(0, len(items), batch):
-            chunk = items[s:s + batch]
+        for chunk in batches:
             texts = [tok.apply_chat_template(
                 [{"role": "system", "content": SYSTEM[p["src"]]}, {"role": "user", "content": p["question"]}],
                 tokenize=False, add_generation_prompt=True, enable_thinking=False) for p in chunk]
@@ -192,7 +203,8 @@ def teach(prompts: list[dict], teacher: str, out: Path, batch: int = 32, max_new
                                    ensure_ascii=False) + "\n")
                 kept += 1
             f.flush()
-            log(f"teach {s + len(chunk)}/{len(items)} kept {kept} dropped {dropped} {time.time() - t0:.0f}s")
+            done += len(chunk)
+            log(f"teach {done}/{len(items)} kept {kept} dropped {dropped} {time.time() - t0:.0f}s")
     return {"kept": kept, "dropped": dropped}
 
 

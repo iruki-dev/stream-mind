@@ -252,6 +252,15 @@ class HFStreamLM(AdapterMixin, nn.Module):
         nv = torch.cat([values[:, :, :s], values[:, :, total - keep:]], 2)
         return y, {"k": nk, "v": nv}
 
+    def _layer(self, layer: nn.Module, kind: str, x: torch.Tensor, st: dict[str, Any], chunked: bool):
+        h = layer.input_layernorm(x)
+        if kind == "linear_attention":
+            h, nst = self._delta(layer.linear_attn, h, st, chunked)
+        else:
+            h, nst = self._attn(layer.self_attn, h, st)
+        x = x + h
+        return x + layer.mlp(layer.post_attention_layernorm(x)), nst
+
     def hidden(self, ids: torch.Tensor, state: StreamState | None = None,
                times: torch.Tensor | None = None, chunked: bool = True):
         """ids (B, T) → 마지막 은닉 (B, T, D), 새 상태. ``times``는 쓰지 않는다(호환용)."""
@@ -259,14 +268,13 @@ class HFStreamLM(AdapterMixin, nn.Module):
             state = self.initial_state(ids.shape[0])
         x = self._embed(ids.to(self.device))
         new_layers = []
+        ckpt = self.training and self.cfg.extra.get("grad_ckpt", True) and torch.is_grad_enabled()
         for layer, kind, st in zip(self.lm.layers, self.layer_types, state.layers):
-            h = layer.input_layernorm(x)
-            if kind == "linear_attention":
-                h, nst = self._delta(layer.linear_attn, h, st, chunked)
+            if ckpt:  # 학습 때는 층마다 활성값을 버리고 역전파 때 다시 계산한다 (메모리)
+                from torch.utils.checkpoint import checkpoint
+                x, nst = checkpoint(self._layer, layer, kind, x, st, chunked, use_reentrant=False)
             else:
-                h, nst = self._attn(layer.self_attn, h, st)
-            x = x + h
-            x = x + layer.mlp(layer.post_attention_layernorm(x))
+                x, nst = self._layer(layer, kind, x, st, chunked)
             new_layers.append(nst)
         x = self.lm.norm(x)
         return x, StreamState(new_layers, None, state.tokens + ids.shape[1], state.extra)
