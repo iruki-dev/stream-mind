@@ -58,7 +58,8 @@ pip install -e '.[hf]'
 python examples/hf_smoke.py --model Qwen/Qwen3.5-0.8B --seconds 60
 ```
 
-전체 학습·측정 순서는 `scripts/pipeline.sh` (CPU에서 약 12시간).
+전체 학습·측정 순서는 `scripts/pipeline.sh` (CPU에서 약 12시간). GPU는 `STREAM_MIND_DEVICE=cuda`
+또는 CLI `--device cuda`로 쓴다. Kaggle GPU에서 돌리는 방법은 [kaggle/README.md](kaggle/README.md)에 있다.
 
 ## 관문 1 결과 (요약)
 
