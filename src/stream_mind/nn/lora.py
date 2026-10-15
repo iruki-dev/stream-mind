@@ -27,10 +27,12 @@ class LoRALinear(nn.Module):
         return self.base.weight
 
     def add(self, name: str, rank: int, alpha: float | None = None) -> None:
-        a = torch.empty(rank, self.base.in_features)
+        w = self.base.weight
+        a = torch.empty(rank, self.base.in_features, device=w.device, dtype=w.dtype)
         nn.init.kaiming_uniform_(a, a=math.sqrt(5))
         self.lora_a[name] = nn.Parameter(a)
-        self.lora_b[name] = nn.Parameter(torch.zeros(self.base.out_features, rank))
+        self.lora_b[name] = nn.Parameter(torch.zeros(self.base.out_features, rank,
+                                                     device=w.device, dtype=w.dtype))
         self.scales[name] = (alpha if alpha is not None else rank) / rank
 
     def remove(self, name: str) -> None:

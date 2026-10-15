@@ -292,10 +292,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--work", default="runs/p3")
     ap.add_argument("--name")
     ap.add_argument("--threads", type=int, default=4)
+    ap.add_argument("--device", default=None, help="cpu | cuda | auto")
     args = ap.parse_args(argv)
     torch.set_num_threads(args.threads)
-    stream = StreamLM.load(args.stream)
-    turn = StreamLM.load(args.turn) if args.turn else None
+    stream = StreamLM.load(args.stream, device=args.device)
+    turn = StreamLM.load(args.turn, device=args.device) if args.turn else None
     t0 = time.time()
     if args.what == "gate2":
         res = gate2(stream, turn)

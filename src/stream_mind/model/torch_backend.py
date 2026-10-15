@@ -69,7 +69,8 @@ class TorchBackend(TextStreamBackend):
         self._spt = seconds_per_token or 0.005
         self._branch = (seconds_per_token or 0.005) * 4
         banned = ["<pad>", "<bos>", "<eos>", "<think>", "<obs ", "</obs>", "<wait>"]
-        self._think_mask = torch.zeros(self.tok.vocab_size, dtype=torch.bool)
+        self._think_mask = torch.zeros(self.tok.vocab_size, dtype=torch.bool,
+                                       device=self.model.device)
         for s in banned:
             self._think_mask[self.tok.token(s)] = True
         self._end_think = self.tok.token("</think>")
@@ -92,7 +93,7 @@ class TorchBackend(TextStreamBackend):
     # 모델 ------------------------------------------------------------------------------
     def _new_model_state(self) -> ModelCursor:
         st = self.model.initial_state(1)
-        return ModelCursor(st, torch.zeros(self.tok.vocab_size))
+        return ModelCursor(st, torch.zeros(self.tok.vocab_size, device=self.model.device))
 
     def _copy_model_state(self, cur: ModelCursor) -> ModelCursor:
         return ModelCursor(cur.st.clone(), cur.logits.clone(), list(cur.pending or []))
@@ -145,7 +146,7 @@ class TorchBackend(TextStreamBackend):
     def _pick(self, logits: torch.Tensor, temperature: float) -> int:
         if temperature <= 0:
             return int(torch.argmax(logits))
-        probs = torch.softmax(logits / temperature, -1)
+        probs = torch.softmax(logits.float() / temperature, -1).cpu()  # 난수기는 CPU에 있다
         return int(torch.multinomial(probs, 1, generator=self.gen))
 
     # 분기 ------------------------------------------------------------------------------

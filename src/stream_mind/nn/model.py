@@ -31,6 +31,18 @@ from .lora import LoRALinear
 torch.set_flush_denormal(True)
 
 
+def resolve_device(device: str | torch.device | None = None) -> torch.device:
+    """None·"auto"면 환경변수 STREAM_MIND_DEVICE, 없으면 cpu. "cuda"는 쓸 수 있을 때만."""
+    import os
+
+    name = str(device) if device not in (None, "auto") else os.environ.get("STREAM_MIND_DEVICE", "cpu")
+    if name == "auto":
+        name = "cuda" if torch.cuda.is_available() else "cpu"
+    if name.startswith("cuda") and not torch.cuda.is_available():
+        raise RuntimeError("cuda를 요청했지만 GPU가 없다")
+    return torch.device(name)
+
+
 @dataclass
 class StreamLMConfig:
     vocab_size: int = 266
@@ -340,11 +352,12 @@ class StreamLM(nn.Module):
         torch.save({"config": asdict(self.cfg), "state": base}, path)
 
     @classmethod
-    def load(cls, path: str | Path, map_location: str = "cpu") -> "StreamLM":
+    def load(cls, path: str | Path, map_location: str = "cpu",
+             device: str | torch.device | None = None) -> "StreamLM":
         blob = torch.load(path, map_location=map_location, weights_only=True)
         model = cls(StreamLMConfig(**blob["config"]))
         model.load_state_dict(blob["state"], strict=False)
-        return model.eval()
+        return model.to(resolve_device(device)).eval()
 
     def num_parameters(self) -> int:
         return sum(p.numel() for p in self.base_parameters())

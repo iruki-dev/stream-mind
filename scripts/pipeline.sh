@@ -3,6 +3,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 D=runs/data
+# 장치: STREAM_MIND_DEVICE (cpu | cuda | auto). GPU가 2개면 stream·turn 병렬 학습을 한 장씩 나눠 쓴다.
+export STREAM_MIND_DEVICE="${STREAM_MIND_DEVICE:-cpu}"
+dev_for() {  # dev_for <순번 0|1>
+  if [[ "$STREAM_MIND_DEVICE" == cuda* ]] && [ "$(python -c 'import torch; print(torch.cuda.device_count())')" -ge 2 ]; then
+    echo "cuda:$1"
+  else
+    echo "$STREAM_MIND_DEVICE"
+  fi
+}
 # 0) 기초 사전학습 (옮겨 적기·계산·뒤집기) → 공통 기본 모델
 python -m stream_mind.data.pretrain --out $D/pretrain.jsonl --n 80000
 python -m stream_mind.train.sft --data $D/pretrain.jsonl --out runs/p0/base.pt --steps 2500 --batch 32 --d-model 256
@@ -11,19 +20,21 @@ python -m stream_mind.data.build --preset stream --out $D/stream.jsonl --dialogu
 python -m stream_mind.data.build --preset turn --out $D/turn.jsonl --dialogue 8000 --games 600 --seed 2
 python -m stream_mind.data.pretrain --out $D/pretrain_mix.jsonl --n 8000 --seed 77 --board 0.5
 # 1a) P1 1단계 SFT (두 모델 같은 조건)
-for M in stream turn; do
-  python -m stream_mind.train.sft --init runs/p0/base.pt --data $D/$M.jsonl $D/pretrain_mix.jsonl \
+I=0; for M in stream turn; do
+  STREAM_MIND_DEVICE=$(dev_for $I) python -m stream_mind.train.sft --init runs/p0/base.pt --data $D/$M.jsonl $D/pretrain_mix.jsonl \
     --out runs/p1/${M}_a.pt --steps 1500 --batch 12 --lr 3e-4 --threads 2 &
+  I=$((I + 1))
 done; wait
 # 1b) P1 2단계: 인지 부하 낮은 게임 + 판 읽기 + 복습
 python -m stream_mind.data.pretrain --out $D/board_lite.jsonl --n 30000 --seed 5 --board 1.0 --games freeway-lite snake-lite
 python -m stream_mind.data.pretrain --out $D/pretrain_small.jsonl --n 2000 --seed 99
-for M in stream turn; do
+I=0; for M in stream turn; do
   S=$([ $M = stream ] && echo 11 || echo 12)
   python -m stream_mind.data.build --preset $M --out $D/${M}_lite_games.jsonl --dialogue 0 --games 600 --seed $S --game-names freeway-lite snake-lite
   grep -v '"kind": "game' $D/$M.jsonl | shuf -n 3000 --random-source=<(yes) > $D/${M}_replay.jsonl
-  python -m stream_mind.train.sft --init runs/p1/${M}_a.pt --data $D/${M}_lite_games.jsonl $D/board_lite.jsonl \
+  STREAM_MIND_DEVICE=$(dev_for $I) python -m stream_mind.train.sft --init runs/p1/${M}_a.pt --data $D/${M}_lite_games.jsonl $D/board_lite.jsonl \
     $D/${M}_replay.jsonl $D/pretrain_small.jsonl --out runs/p1/$M.pt --steps 1000 --batch 24 --lr 2e-4 --threads 2 &
+  I=$((I + 1))
 done; wait
 # 측정: P0 관문 1, 관문 2~4
 python -m stream_mind.bench.gate1 --seeds 20

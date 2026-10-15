@@ -26,7 +26,7 @@ from typing import Any, Callable, Iterable
 import torch
 import torch.nn.functional as F
 
-from ..nn.model import StreamLM, StreamLMConfig
+from ..nn.model import StreamLM, StreamLMConfig, resolve_device
 from ..nn.tokenizer import ByteTokenizer
 
 
@@ -217,6 +217,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--save-every", type=int, default=250)
+    ap.add_argument("--device", default=None, help="cpu | cuda | auto (기본: STREAM_MIND_DEVICE 또는 cpu)")
     args = ap.parse_args(argv)
     torch.manual_seed(args.seed)
     torch.set_num_threads(args.threads)
@@ -227,11 +228,12 @@ def main(argv: list[str] | None = None) -> int:
     held = eps[: max(1, len(eps) // 50)]
     train_eps = eps[len(held):]
     if args.init:
-        model = StreamLM.load(args.init)
+        model = StreamLM.load(args.init, device=args.device)
     else:
         cfg = StreamLMConfig(vocab_size=tok.vocab_size, d_model=args.d_model,
                              head_dim=args.d_model // 4, pattern=args.pattern, window=args.window)
-        model = StreamLM(cfg)
+        model = StreamLM(cfg).to(resolve_device(args.device))
+    print(f"장치 {model.device}")
     print(f"에피소드 {len(train_eps)}개 (검증 {len(held)}개), 매개변수 {model.num_parameters():,}")
     log_path = Path(args.out).with_suffix(".log")
     log_path.parent.mkdir(parents=True, exist_ok=True)

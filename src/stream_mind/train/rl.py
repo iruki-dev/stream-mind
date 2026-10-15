@@ -186,10 +186,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--device", default=None, help="cpu | cuda | auto")
     args = ap.parse_args(argv)
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
-    model = StreamLM.load(args.init)
+    model = StreamLM.load(args.init, device=args.device)
     sft = load_episodes(args.sft_data, ByteTokenizer()) if args.sft_data else None
     cfg = RLConfig(iterations=args.iterations, group=args.group,
                    seeds_per_iter=args.seeds_per_iter, lr=args.lr, seed=args.seed)

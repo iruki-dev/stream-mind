@@ -14,14 +14,14 @@ from ..nn.tokenizer import ByteTokenizer
 @torch.no_grad()
 def complete(model: StreamLM, prompt: str, max_tokens: int = 24, stop: str = "\n") -> str:
     tok = ByteTokenizer()
-    logits, st = model(torch.tensor([tok.encode(prompt)]))
+    logits, st = model(torch.tensor([tok.encode(prompt)], device=model.device))
     out: list[int] = []
     for _ in range(max_tokens):
         nxt = int(logits[0, -1].argmax())
         out.append(nxt)
         if tok.decode(out).endswith(stop):
             break
-        logits, st = model(torch.tensor([[nxt]]), st)
+        logits, st = model(torch.tensor([[nxt]], device=model.device), st)
     return tok.decode(out)
 
 

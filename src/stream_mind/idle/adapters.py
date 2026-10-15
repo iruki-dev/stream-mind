@@ -85,7 +85,7 @@ class AdapterBank:
     @torch.no_grad()
     def embed(self, text: str) -> torch.Tensor:
         ids = self.tok.encode(text)[-512:] or [0]
-        e = self.model.embed.weight[torch.tensor(ids)].float()
+        e = self.model.embed.weight.detach()[torch.tensor(ids, device=self.model.device)].float().cpu()
         # 바이트 평균은 공통 문자가 지배하므로, 조각 2-gram 해시를 더해 주제를 구분한다.
         grams = torch.zeros(256)
         for a, b in zip(ids, ids[1:]):
