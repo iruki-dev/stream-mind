@@ -13,7 +13,7 @@ fi
 (
   export CUDA_VISIBLE_DEVICES=0
   python -m stream_mind.train.rl --init $P/stage3_stream.pt --out $OUT/stage4_stream.pt \
-    --sft-data $D/replay_stream.jsonl --iterations __IT__ --group 4 --seeds-per-iter 1 --lr 5e-5 --save-every 2
+    --sft-data $D/replay_stream.jsonl --iterations 12 --group 4 --seeds-per-iter 1 --lr 5e-5 --save-every 2
 ) 2>&1 | sed -u 's/^/[g0] /' | tee $OUT/stage4.log &
 (
   export CUDA_VISIBLE_DEVICES=1
