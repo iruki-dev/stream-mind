@@ -165,7 +165,7 @@ def train(model: StreamLM, episodes: list[Episode], steps: int, lr: float = 2e-3
           params: Iterable[torch.nn.Parameter] | None = None, log=print,
           weight_decay: float = 0.01, warmup: int = 50,
           checkpoint: Callable[[int], None] | None = None, save_every: int = 0,
-          micro_batch: int = 8) -> list[float]:
+          micro_batch: int = 8, max_minutes: float | None = None) -> list[float]:
     rng = random.Random(seed)
     params = list(params) if params is not None else trainable(model)
     opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay, betas=(0.9, 0.95))
@@ -214,6 +214,9 @@ def train(model: StreamLM, episodes: list[Episode], steps: int, lr: float = 2e-3
             recent = history[-log_every:]
             log(f"step {step} loss {sum(recent) / len(recent):.4f} "
                 f"lr {sched.get_last_lr()[0]:.2e} {time.time() - t0:.0f}s")
+        if max_minutes is not None and time.time() - t0 > max_minutes * 60:
+            log(f"시간 제한 {max_minutes:g}분: {step + 1}걸음에서 멈춘다")
+            break
     model.eval()
     return history
 
@@ -261,6 +264,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--micro-batch", type=int, default=8)
     ap.add_argument("--warmup", type=int, default=50)
     ap.add_argument("--log-every", type=int, default=25)
+    ap.add_argument("--max-minutes", type=float, default=None, help="이 시간이 지나면 저장하고 멈춘다")
     args = ap.parse_args(argv)
     torch.manual_seed(args.seed)
     torch.set_num_threads(args.threads)
@@ -295,7 +299,8 @@ def main(argv: list[str] | None = None) -> int:
 
         train(model, train_eps, args.steps, args.lr, args.bptt, args.batch, args.seed, log=log,
               checkpoint=lambda step: model.save(args.out), save_every=args.save_every,
-              micro_batch=args.micro_batch, warmup=args.warmup, log_every=args.log_every)
+              micro_batch=args.micro_batch, warmup=args.warmup, log_every=args.log_every,
+              max_minutes=args.max_minutes)
         log(f"검증 손실 {evaluate(model, held, args.bptt):.4f}")
     model.save(args.out)
     return 0
