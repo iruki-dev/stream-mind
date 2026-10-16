@@ -22,7 +22,8 @@ def main() -> None:
     out = HERE / ".build" / "kernels" / args.name
     out.mkdir(parents=True, exist_ok=True)
     (out / "job.py").write_text((HERE / "job.py").read_text().replace("__JOB__", job))
-    meta = {"id": f"{args.owner}/sm-{args.name}", "title": f"sm {args.name}", "code_file": "job.py",
+    slug = args.name.replace("_", "-")  # Kaggle은 밑줄을 하이픈으로 바꾼다
+    meta = {"id": f"{args.owner}/sm-{slug}", "title": f"sm {slug}", "code_file": "job.py",
             "language": "python", "kernel_type": "script", "is_private": True, "enable_gpu": True,
             "enable_tpu": False, "enable_internet": True, "machine_shape": args.machine,
             "dataset_sources": [f"{args.owner}/stream-mind-src", *args.data],
