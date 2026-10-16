@@ -312,13 +312,22 @@ class Probe:
         return out
 
 
-def run(model_id: str, quick: bool = False, log=print, device_map: str = "auto") -> dict[str, Any]:
+def run(model_id: str, quick: bool = False, log=print, device_map: str = "auto",
+        replay_ratio: float = 0.0, lr: float = 2e-4, skip_chat: bool = False) -> dict[str, Any]:
+    """replay_ratio: 공부 재료 대비 복습(원본 자신의 답) 비율. 0이면 예전 방식(재료의 약 1/10)."""
     pr = Probe(model_id, device_map, log=log)
     rp = REPLAY_PROMPTS[:4] if quick else REPLAY_PROMPTS
     replay_ans = pr.generate([pr.chat_prompt(SYS_QA, [("user", q)]) for q in rp], 96)
     replay = [(SYS_QA, q, a.strip()) for q, a in zip(rp, replay_ans)]  # 공부할 때 섞는 복습 (원본 자신의 답)
     res: dict[str, Any] = {"model": model_id, "params": pr.n_params, "dtype": str(pr.dtype),
-                           "load_seconds": round(pr.load_seconds)}
+                           "load_seconds": round(pr.load_seconds), "replay_ratio": replay_ratio, "lr": lr}
+
+    def mix(samples: list) -> list:
+        if replay_ratio > 0:
+            k = max(1, round(len(samples) * replay_ratio / len(replay)))
+        else:
+            k = max(1, len(samples) // (3 * len(replay)))
+        return samples + replay * k
     n_tools, per_op = (2, 1) if quick else (8, 3)
     tools = make_tools(11, n_tools)
     tasks = tool_tasks(tools, per_op, seed=1)
@@ -349,7 +358,7 @@ def run(model_id: str, quick: bool = False, log=print, device_map: str = "auto")
             inj[name] = {"skipped": "재료 없음"}
             continue
         t = time.time()
-        model, st = pr.inject(samples + replay * max(1, len(samples) // (3 * len(replay))), steps)
+        model, st = pr.inject(mix(samples), steps, lr=lr)
 
         def measure():
             return {"fact_closed_book": pr.fact_acc(world, test_q, False),
@@ -384,7 +393,7 @@ def run(model_id: str, quick: bool = False, log=print, device_map: str = "auto")
         if not samples:
             tinj[name] = {"skipped": "재료 없음"}
             continue
-        model, st = pr.inject(samples + replay * max(1, len(samples) // (3 * len(replay))), max(6, steps // 2))
+        model, st = pr.inject(mix(samples), max(6, steps // 2), lr=lr)
         st["tool_without_manual"] = pr._with_adapter(model, lambda: pr.tool_acc(held, False))
         tinj[name] = st
         log(f"도구 공부 {name}: 설명서 없이 {res['tool_study_before']:.2f} → {st['tool_without_manual']:.2f}")
@@ -392,8 +401,9 @@ def run(model_id: str, quick: bool = False, log=print, device_map: str = "auto")
     res["tool_study_seconds"] = round(time.time() - t)
     res["decode_ms_per_token"] = pr.decode_speed(16 if quick else 64)
     t = time.time()
-    res["chats"] = pr.chats() if not quick else pr.chats()[:1]
-    log(f"대화 기록 {len(res['chats'])}개 ({time.time() - t:.0f}s), 토큰당 {res['decode_ms_per_token']}ms")
+    if not skip_chat:
+        res["chats"] = pr.chats() if not quick else pr.chats()[:1]
+        log(f"대화 기록 {len(res['chats'])}개 ({time.time() - t:.0f}s), 토큰당 {res['decode_ms_per_token']}ms")
     return res
 
 
@@ -426,9 +436,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--quick", action="store_true", help="아주 작은 묶음 (CPU 확인용)")
     ap.add_argument("--device-map", default="auto")
     ap.add_argument("--judge", nargs="*", help="이 모델로 다른 결과 파일의 대화를 판정")
+    ap.add_argument("--replay-ratio", type=float, default=0.0)
+    ap.add_argument("--lr", type=float, default=2e-4)
+    ap.add_argument("--skip-chat", action="store_true")
     args = ap.parse_args(argv)
     torch.manual_seed(0)
-    res = judge(args.model, args.judge) if args.judge else run(args.model, args.quick, device_map=args.device_map)
+    res = judge(args.model, args.judge) if args.judge else run(args.model, args.quick, device_map=args.device_map,
+                                                                replay_ratio=args.replay_ratio, lr=args.lr,
+                                                                skip_chat=args.skip_chat)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(res, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     print("저장:", args.out, flush=True)
