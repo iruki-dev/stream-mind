@@ -193,7 +193,7 @@ class Probe:
         return p + a, [-100] * len(p) + a
 
     def inject(self, samples: list[tuple[str, str, str | None]], steps: int, lr: float = 2e-4,
-               rank: int = 16, batch: int = 8) -> tuple[Any, dict]:
+               rank: int = 16, batch: int = 8, accum: int = 4) -> tuple[Any, dict]:
         """samples: (system, user, answer|None). 어댑터를 붙여 학습하고 (모델, 통계)를 돌려준다."""
         from peft import LoraConfig, get_peft_model
 
@@ -218,27 +218,42 @@ class Probe:
             for i in range(torch.cuda.device_count()):
                 torch.cuda.reset_peak_memory_stats(i)
         t0, toks, losses = time.time(), 0, []
+        from torch.utils.checkpoint import checkpoint
+
+        def chunk_loss(hs: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+            return torch.nn.functional.cross_entropy(inner.lm_head(hs).float(), t, reduction="sum")
+
+        inner = model.get_base_model()
+        micro = max(1, batch // accum)
         for step in range(steps):
-            b = [enc[rng.randrange(len(enc))] for _ in range(batch)]
-            n = max(len(x) for x, _ in b)
-            ids = torch.full((len(b), n), self.tok.pad_token_id, dtype=torch.long)
-            lab = torch.full((len(b), n), -100, dtype=torch.long)
-            att = torch.zeros((len(b), n), dtype=torch.long)
-            for i, (x, y) in enumerate(b):  # 오른쪽 채움 (학습)
-                ids[i, :len(x)] = torch.tensor(x)
-                lab[i, :len(y)] = torch.tensor(y)
-                att[i, :len(x)] = 1
-            ctx = torch.autocast("cuda", dtype=self.dtype) if cuda else contextlib.nullcontext()
-            with ctx:
-                # 어휘가 커서(24만) 모든 위치의 로짓을 만들면 메모리가 넘친다. 학습하는 위치에서만 만든다.
-                inner = model.get_base_model()
-                h = inner.model(input_ids=ids.to(self.device),
-                                attention_mask=att.to(self.device)).last_hidden_state
-                tgt = lab[:, 1:].to(h.device)
-                sel = tgt != -100
-                logits = inner.lm_head(h[:, :-1][sel])
-                loss = torch.nn.functional.cross_entropy(logits.float(), tgt[sel])
-            (scaler.scale(loss) if scaler else loss).backward()
+            b_all = [enc[rng.randrange(len(enc))] for _ in range(batch)]
+            n_tgt = sum(sum(1 for v in y[1:] if v != -100) for _, y in b_all)
+            step_loss = 0.0
+            for mi in range(0, batch, micro):
+                b = b_all[mi:mi + micro]
+                n = max(len(x) for x, _ in b)
+                ids = torch.full((len(b), n), self.tok.pad_token_id, dtype=torch.long)
+                lab = torch.full((len(b), n), -100, dtype=torch.long)
+                att = torch.zeros((len(b), n), dtype=torch.long)
+                for i, (x, y) in enumerate(b):  # 오른쪽 채움 (학습)
+                    ids[i, :len(x)] = torch.tensor(x)
+                    lab[i, :len(y)] = torch.tensor(y)
+                    att[i, :len(x)] = 1
+                ctx = torch.autocast("cuda", dtype=self.dtype) if cuda else contextlib.nullcontext()
+                with ctx:
+                    # 어휘가 커서(24만) 모든 위치의 로짓을 만들면 메모리가 넘친다. 학습하는 위치에서만,
+                    # 그것도 조각씩 만들고 역전파 때 다시 계산한다.
+                    h = inner.model(input_ids=ids.to(self.device),
+                                    attention_mask=att.to(self.device)).last_hidden_state
+                    tgt = lab[:, 1:].to(h.device)
+                    sel = tgt != -100
+                    hs, ts = h[:, :-1][sel], tgt[sel]
+                    loss = sum(checkpoint(chunk_loss, hs[i:i + 256], ts[i:i + 256], use_reentrant=False)
+                               for i in range(0, hs.shape[0], 256)) / max(1, n_tgt)
+                (scaler.scale(loss) if scaler else loss).backward()
+                step_loss += loss.item()
+                toks += int(att.sum())
+            losses.append(step_loss)
             if scaler:
                 scaler.unscale_(opt)
             torch.nn.utils.clip_grad_norm_(params, 1.0)
@@ -248,8 +263,6 @@ class Probe:
             else:
                 opt.step()
             opt.zero_grad(set_to_none=True)
-            toks += int(att.sum())
-            losses.append(loss.item())
         if cuda:
             torch.cuda.synchronize()
         sec = time.time() - t0
