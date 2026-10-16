@@ -192,17 +192,26 @@ class Probe:
         a = self.tok(answer + "<|im_end|>", add_special_tokens=False).input_ids
         return p + a, [-100] * len(p) + a
 
+    LORA_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "in_proj_qkv", "in_proj_z", "out_proj",
+                    "gate_proj", "up_proj", "down_proj"]
+
+    def lora_config(self, rank: int = 16):
+        from peft import LoraConfig
+        return LoraConfig(r=rank, lora_alpha=2 * rank, target_modules=self.LORA_TARGETS, lora_dropout=0.0)
+
     def inject(self, samples: list[tuple[str, str, str | None]], steps: int, lr: float = 2e-4,
                rank: int = 16, batch: int = 8, accum: int = 4) -> tuple[Any, dict]:
         """samples: (system, user, answer|None). 어댑터를 붙여 학습하고 (모델, 통계)를 돌려준다."""
-        from peft import LoraConfig, get_peft_model
+        from peft import get_peft_model
 
-        targets = ["q_proj", "k_proj", "v_proj", "o_proj", "in_proj_qkv", "in_proj_z", "out_proj",
-                   "gate_proj", "up_proj", "down_proj"]
-        model = get_peft_model(self.model, LoraConfig(r=rank, lora_alpha=2 * rank, target_modules=targets,
-                                                      lora_dropout=0.0))
+        model = get_peft_model(self.model, self.lora_config(rank))
+        return model, self.train_steps(model, samples, steps, lr, batch, accum)
+
+    def train_steps(self, model, samples: list[tuple[str, str, str | None]], steps: int, lr: float = 2e-4,
+                    batch: int = 8, accum: int = 4, seed: int = 0) -> dict:
+        """이미 어댑터가 붙은 모델(peft)에서, 지금 켜진 어댑터의 매개변수만 학습한다."""
         for p in model.parameters():
-            if p.requires_grad:
+            if p.requires_grad and p.dtype != torch.float32:
                 p.data = p.data.float()
         model.gradient_checkpointing_enable()
         model.enable_input_require_grads()
@@ -211,7 +220,7 @@ class Probe:
         cuda = torch.cuda.is_available()
         scaler = torch.amp.GradScaler("cuda") if cuda and self.dtype == torch.float16 else None
         enc = [self._encode(*s) for s in samples]
-        rng = random.Random(0)
+        rng = random.Random(seed)
         model.train()
         if cuda:
             torch.cuda.synchronize()
@@ -275,7 +284,7 @@ class Probe:
         if cuda:
             stats["peak_gb"] = round(max(torch.cuda.max_memory_allocated(i)
                                          for i in range(torch.cuda.device_count())) / 2 ** 30, 2)
-        return model, stats
+        return stats
 
     def _with_adapter(self, model, fn):
         """어댑터를 붙인 모델로 fn을 재고, 원래 모델로 되돌린다."""
