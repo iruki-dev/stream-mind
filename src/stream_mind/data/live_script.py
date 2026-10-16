@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from ..research.world import make_world
+from .live_build import LEADS
 from ..tools.live import safe_eval
 
 SYS_AI = {
@@ -353,11 +354,12 @@ def build(gen: Gen, n: int, prompts: list[dict], seed: int, log=print) -> list[d
         reqs.append((b.lang, msgs))
     outs = gen.ai(reqs)
     for b, o in zip(alive0, outs):
+        # 계산과 검색의 첫 말은 원본에게 맡기면 지시문을 따라 하거나 모르는 것을 아는 척했다: 틀을 쓴다.
         if b.kind == "calc":
-            b.add_reply({"on": "turn", "turn": 0}, first(o), calls=[["call", "calc", "eval", b.extra["expr"]]],
+            b.add_reply({"on": "turn", "turn": 0}, "", calls=[["call", "calc", "eval", b.extra["expr"]]],
                         note="계산기로 계산한다")
         elif b.kind == "search":
-            b.add_reply({"on": "turn", "turn": 0}, first(o),
+            b.add_reply({"on": "turn", "turn": 0}, b.rng.choice(LEADS[b.lang]),
                         calls=[["call", "search", "query", b.extra["query"]]], note="모르는 사람이라 찾아본다")
         elif b.kind == "remind":
             b.add_reply({"on": "turn", "turn": 0}, first(o))
