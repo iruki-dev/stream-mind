@@ -317,9 +317,9 @@ def build(gen: Gen, n: int, prompts: list[dict], seed: int, log=print) -> list[d
             b.add_user(ask.format(t=tw, x=x), first_gap=b.rng.uniform(0.3, 1.0))
 
     # 5. 첫 답 ---------------------------------------------------------------------------
-    first = [b for b in bs if not b.dead]
+    alive0 = [b for b in bs if not b.dead]
     reqs = []
-    for b in first:
+    for b in alive0:
         msgs = list(b.history)
         if b.kind == "calc":
             msgs = [("user", b.history[0][1] + "\n\n(계산기로 계산하겠다고 한 문장으로만 말한다.)")]
@@ -329,7 +329,7 @@ def build(gen: Gen, n: int, prompts: list[dict], seed: int, log=print) -> list[d
             msgs = [("user", b.history[0][1] + "\n\n(알겠다고, 그때 알려 주겠다고 한 문장으로만 답한다.)")]
         reqs.append((b.lang, msgs))
     outs = gen.ai(reqs)
-    for b, o in zip(first, outs):
+    for b, o in zip(alive0, outs):
         if b.kind == "calc":
             b.add_reply({"on": "turn", "turn": 0}, first(o), calls=[["call", "calc", "eval", b.extra["expr"]]],
                         note="계산기로 계산한다")
@@ -416,6 +416,9 @@ def build(gen: Gen, n: int, prompts: list[dict], seed: int, log=print) -> list[d
                              ("user", f"(계산기 결과: {b.extra['expr']} = {_num(b.extra['reference'])}. "
                                       "이 결과로 답을 짧게 말한다.)")]) for b in calc], 160)
     for b, o in zip(calc, outs):
+        if _num(b.extra["reference"]) not in o.replace(",", ""):
+            b.dead = True  # 결과를 잘못 옮겼다
+            continue
         b.add_reply({"on": "result", "tool": "calc"}, o)
     srch = [b for b in bs if b.kind == "search" and not b.dead]
     outs = gen.ai([(b.lang, [("user", b.history[0][1]),
