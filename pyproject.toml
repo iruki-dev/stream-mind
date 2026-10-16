@@ -23,6 +23,7 @@ stream-mind-gates = "stream_mind.bench.gates:main"
 stream-mind-sft = "stream_mind.train.sft:main"
 stream-mind-rl = "stream_mind.train.rl:main"
 stream-mind-data = "stream_mind.data.build:main"
+stream-mind-demo = "stream_mind.demo:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

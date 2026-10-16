@@ -49,6 +49,27 @@ P0 설계 대응과 측정은 [docs/p0.md](docs/p0.md), P1~P4는 [docs/p1-p4.md]
 | P4 환경 RL | `rl_train` | `src/stream_mind/train/rl.py` |
 | 관문 2~5, G6·G8·G10 측정 | 평가기 | `src/stream_mind/bench/gates.py` |
 
+## 학습된 모델 직접 써 보기
+
+Qwen3.5-0.8B에 다섯 단계를 학습한 모델(4단계 체크포인트)과 대화하거나 게임을 시킬 수 있다. 화면에는 들어온 관측과
+모델이 쓴 사고·도구 호출이 그대로 흐른다. 한 세션의 대화는 같은 스트림에 이어지므로 앞에서 한 말을 기억해야 답할 수 있다.
+
+**Kaggle 노트북 (GPU, 브라우저):** [irukidev/stream-mind-demo](https://www.kaggle.com/code/irukidev/stream-mind-demo)(비공개)를
+**Edit**로 열고 위에서부터 셀을 실행한다. `chat(model)` 셀에서 직접 입력한다.
+
+**내 컴퓨터:**
+
+```bash
+pip install -e '.[hf]'
+kaggle kernels output irukidev/sm-stage4 -p ckpt --file-pattern 'stage4_stream.pt'   # 어댑터 82MB
+python -m stream_mind.demo --model ckpt/stage4_stream.pt                  # 대화 (GPU가 있으면 GPU)
+python -m stream_mind.demo --model ckpt/stage4_stream.pt --play freeway-lite --pressure 1
+```
+
+- 본체(Qwen3.5-0.8B, 약 1.7GB)는 처음 실행할 때 Hugging Face에서 받는다.
+- CPU에서는 메시지 하나에 5초 안팎이 걸린다.
+- 대화 중 명령은 `/think`(사고 보기 켜고 끄기), `/reset`(새 세션), `/quit`(끝내기)이다.
+
 ## 빠른 시작
 
 ```bash
