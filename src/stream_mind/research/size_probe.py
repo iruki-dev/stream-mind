@@ -230,9 +230,14 @@ class Probe:
                 att[i, :len(x)] = 1
             ctx = torch.autocast("cuda", dtype=self.dtype) if cuda else contextlib.nullcontext()
             with ctx:
-                out = model(input_ids=ids.to(self.device), attention_mask=att.to(self.device),
-                            labels=lab.to(self.device))
-            loss = out.loss
+                # 어휘가 커서(24만) 모든 위치의 로짓을 만들면 메모리가 넘친다. 학습하는 위치에서만 만든다.
+                inner = model.get_base_model()
+                h = inner.model(input_ids=ids.to(self.device),
+                                attention_mask=att.to(self.device)).last_hidden_state
+                tgt = lab[:, 1:].to(h.device)
+                sel = tgt != -100
+                logits = inner.lm_head(h[:, :-1][sel])
+                loss = torch.nn.functional.cross_entropy(logits.float(), tgt[sel])
             (scaler.scale(loss) if scaler else loss).backward()
             if scaler:
                 scaler.unscale_(opt)
