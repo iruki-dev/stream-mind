@@ -137,14 +137,37 @@ class Gen:
             return []
         t0 = time.time()
         prompts = [self.pr.chat_prompt(s, m) for s, m in items]
-        order = sorted(range(len(prompts)), key=lambda i: len(prompts[i]))  # 비슷한 길이끼리 묶는다
-        res = self.pr.generate([prompts[i] for i in order], max_new, batch=self.batch, sample=sample)
+        lens = [len(self.pr.tok.encode(p)) for p in prompts]
+        order = sorted(range(len(prompts)), key=lambda i: lens[i])  # 비슷한 길이끼리 묶는다
         out = [""] * len(prompts)
-        for i, r in zip(order, res):
-            out[i] = r.strip()
+        # 묶음 크기는 토큰 예산으로 정한다 (대화가 길어지면 묶음을 줄인다)
+        budget = self.batch * 640
+        batches: list[list[int]] = [[]]
+        for i in order:  # 짧은 것부터라 지금 것이 묶음에서 가장 길다
+            cur = batches[-1]
+            if cur and (len(cur) >= self.batch or (len(cur) + 1) * (lens[i] + max_new) > budget):
+                batches.append([])
+            batches[-1].append(i)
+        for g in batches:
+            if g:
+                for j, r in zip(g, self._gen([prompts[k] for k in g], max_new, sample)):
+                    out[j] = r.strip()
         self.seconds += time.time() - t0
         self.tokens += sum(len(self.pr.tok.encode(r)) for r in out)
         return out
+
+    def _gen(self, prompts: list[str], max_new: int, sample: bool) -> list[str]:
+        """메모리가 넘치면 반으로 나눠 다시 한다."""
+        import torch
+
+        try:
+            return self.pr.generate(prompts, max_new, batch=len(prompts), sample=sample)
+        except torch.OutOfMemoryError:
+            torch.cuda.empty_cache()
+            if len(prompts) == 1:
+                return [""]
+            h = len(prompts) // 2
+            return self._gen(prompts[:h], max_new, sample) + self._gen(prompts[h:], max_new, sample)
 
     def ai(self, convs: list[tuple[str, list[tuple[str, str]]]], max_new: int = 220) -> list[str]:
         """convs: (언어, [(role, text)])."""
