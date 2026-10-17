@@ -223,6 +223,10 @@ def main(argv: list[str] | None = None) -> int:
             logs.append("".join(("〔" + t + "〕") if o else t for t, o in mind.state.transcript.segments[1:]))
         if i % 10 == 0:
             print(f"{i + 1}/{len(scripts)} {time.time() - t0:.0f}s {r['kind']} 말 {r['says']}", flush=True)
+            # 중간 저장: 작업 시간 제한에 걸려도 그때까지의 결과는 남긴다
+            Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.out).write_text(json.dumps({"partial": True, "summary": summarize(rows), "rows": rows},
+                                                 ensure_ascii=False), encoding="utf-8")
     out = {"model": args.model or args.base, "summary": summarize(rows), "rows": rows, "transcripts": logs}
     print(json.dumps(out["summary"], ensure_ascii=False, indent=1), flush=True)
     if args.judge:
