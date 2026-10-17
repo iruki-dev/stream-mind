@@ -1,4 +1,4 @@
-# 실시간 대화 3: 학습한 4B 스트림 모델(sm-live-train)과 학습 전 모델을 같은 평가 대본에 돌린다 (두 장 나란히).
+# 실시간 대화 3: 학습한 4B 스트림 모델(데이터셋 stream-mind-live: sm-live-train의 출력)과 학습 전 모델을 같은 평가 대본에 돌린다 (두 장 나란히).
 # 학습 뒤 모델은 첫 답을 원본의 답과 원본 모델이 짝지어 비교한다.
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export STREAM_MIND_TOKENIZER=hf:Qwen/Qwen3.5-4B
