@@ -1,0 +1,33 @@
+{
+ "ticks": 90,
+ "over_budget_ratio": 0.0,
+ "p50_ms": 52.57183149660705,
+ "p99_ms": 112.15745999652427,
+ "missed_deadlines": 0,
+ "frames": 15,
+ "defaulted_frames": 1,
+ "replies": [
+  [
+   23.83,
+   "42"
+  ],
+  [
+   34.34,
+   "56"
+  ]
+ ],
+ "reply_delays": [
+  1.83,
+  0.34
+ ],
+ "idle_rounds": 3,
+ "idle_seconds": 19.8,
+ "idle_results": [
+  "입력이 들어와 중단",
+  "예상 질문 1개 준비, 적중률 0.00",
+  "입력이 들어와 중단"
+ ],
+ "peak_rss_mb": 1170,
+ "device": "cpu (4 threads)",
+ "seconds": 45.56857252120972
+}

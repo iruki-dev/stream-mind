@@ -1,0 +1,98 @@
+{
+ "review": {
+  "kind": "review",
+  "accepted": true,
+  "target_before": 0.0,
+  "target_after": 0.6666666666666666,
+  "regression_before": {
+   "arith": 0.6666666666666666,
+   "reverse": 1.0,
+   "chat": 1.0,
+   "name": 0.8333333333333334,
+   "freeway-lite:101": 1.0,
+   "snake-lite:102": 1.0
+  },
+  "regression_after": {
+   "arith": 0.5,
+   "reverse": 1.0,
+   "chat": 1.0,
+   "name": 0.8333333333333334,
+   "freeway-lite:101": 1.0,
+   "snake-lite:102": 0.0
+  },
+  "adapter": "review1",
+  "note": "반영: review 0.00→0.67",
+  "seconds": 352.64168548583984
+ },
+ "consolidate": {
+  "kind": "consolidate",
+  "accepted": true,
+  "target_before": 0.0,
+  "target_after": 1.0,
+  "regression_before": {
+   "arith": 0.5,
+   "reverse": 1.0,
+   "chat": 1.0,
+   "name": 0.8333333333333334,
+   "freeway-lite:101": 1.0,
+   "snake-lite:102": 0.0
+  },
+  "regression_after": {
+   "arith": 0.5,
+   "reverse": 1.0,
+   "chat": 1.0,
+   "name": 0.8333333333333334,
+   "freeway-lite:101": 1.0,
+   "snake-lite:102": 2.0
+  },
+  "adapter": "memory2",
+  "note": "반영: consolidate 0.00→1.00",
+  "seconds": 83.35302543640137
+ },
+ "polluted_recall": 0.0,
+ "deletion": {
+  "before": {
+   "주차번호": 1.0,
+   "회의실": 1.0,
+   "방번호": 1.0
+  },
+  "after": {
+   "주차번호": 1.0,
+   "회의실": 0.0,
+   "방번호": 1.0
+  },
+  "rebuilt": true,
+  "forgotten": true
+ },
+ "rollback_ok": true,
+ "log": [
+  "[유휴 학습] review: 반영: review 0.00→0.67 (353s)",
+  "[유휴 학습] consolidate: 반영: consolidate 0.00→1.00 (83s)",
+  "[유휴 학습] consolidate: 반영: consolidate 0.00→1.00 (86s)"
+ ],
+ "policy": {
+  "consolidate": [
+   2.0,
+   2.0
+  ],
+  "review": [
+   0.6666666666666666,
+   1.0
+  ],
+  "practice": [
+   0.0,
+   0.0
+  ],
+  "prepare": [
+   0.0,
+   0.0
+  ],
+  "selfplay": [
+   0.0,
+   0.0
+  ]
+ },
+ "passed": true,
+ "criteria": "유휴 학습 뒤 반복 과제(실패 게임 복습 또는 공고화) 향상, 반영된 학습의 회귀 세트 유지, 오염 사실 회상 0",
+ "seconds": 578.4421110153198
+}

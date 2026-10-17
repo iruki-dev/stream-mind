@@ -1,0 +1,147 @@
+{
+ "env": {
+  "python": "3.13.15",
+  "torch": "2.11.0+cu128",
+  "cuda_available": true,
+  "device": "cuda",
+  "cuda": "12.8",
+  "gpus": [
+   "Tesla T4",
+   "Tesla T4"
+  ],
+  "capability": [
+   7,
+   5
+  ],
+  "bf16_supported": true,
+  "mem_total_gb": 14.56
+ },
+ "checks": {
+  "kernels": {
+   "ok": true,
+   "seconds": 0.83,
+   "result": {
+    "value_diff": 1.7881393432617188e-07,
+    "grad_diff": 1.9073486328125e-06
+   }
+  },
+  "model": {
+   "ok": true,
+   "seconds": 0.67,
+   "result": {
+    "cpu_vs_device": 4.76837158203125e-07,
+    "incremental": 4.76837158203125e-07,
+    "recurrent": 2.384185791015625e-07,
+    "fork_independent": true
+   }
+  },
+  "data": {
+   "ok": true,
+   "seconds": 3.97,
+   "result": [
+    "/tmp/sm-gpu-qqhifj6n/pretrain.jsonl",
+    "/tmp/sm-gpu-qqhifj6n/stream.jsonl"
+   ]
+  },
+  "sft": {
+   "ok": true,
+   "seconds": 17.98,
+   "result": {
+    "params": 3619984,
+    "episodes": 328,
+    "steps": 30,
+    "sec_per_step_batch12": 0.591,
+    "loss_before": 5.657486176826585,
+    "loss_after": 2.717644060161752,
+    "reload_same": true,
+    "log": [
+     "step 0 loss 5.5843 lr 1.99e-04 0s",
+     "step 10 loss 4.2678 lr 3.52e-04 8s",
+     "step 20 loss 2.9638 lr 1.03e-04 10s",
+     "step 29 loss 2.5848 lr 0.00e+00 17s"
+    ],
+    "history": [
+     5.5843,
+     5.5102,
+     5.0583,
+     4.4141,
+     4.363,
+     4.1247,
+     3.6704,
+     3.6084,
+     4.1089,
+     3.943,
+     3.8767,
+     3.3298,
+     3.7412,
+     2.8386,
+     2.7038,
+     2.6514,
+     3.2934,
+     2.6059,
+     3.2418,
+     2.1292,
+     3.1029,
+     3.1452,
+     2.5247,
+     2.4874,
+     3.4203,
+     1.8882,
+     2.5322,
+     2.2776,
+     2.4704,
+     1.9988
+    ],
+    "peak_mem_gb": 0.474
+   }
+  },
+  "adapters": {
+   "ok": true,
+   "seconds": 1.13,
+   "result": {
+    "trained": true,
+    "version": 1,
+    "selected": [
+     "topic-smoke"
+    ],
+    "after_rollback": []
+   }
+  },
+  "backend": {
+   "ok": true,
+   "seconds": 10.57,
+   "result": {
+    "dialogue": {
+     "arith": 0.0
+    },
+    "games": {
+     "stream": {
+      "score": 0.0,
+      "tokens": [
+       400
+      ]
+     },
+     "turn": {
+      "score": 0.0,
+      "tokens": [
+       516
+      ]
+     }
+    },
+    "seconds": 10.57
+   }
+  },
+  "rl": {
+   "ok": true,
+   "seconds": 15.48,
+   "result": {
+    "iterations": 1,
+    "log": [
+     "rl 0 frames 4 score 0.50 reward 0.24 latency 0.48 terms 4 15s"
+    ],
+    "seconds": 15.47
+   }
+  }
+ },
+ "ok": true
+}

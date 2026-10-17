@@ -1,0 +1,20 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 2 files:   0%|          | 0/2 [00:00<?, ?it/s]Fetching 2 files:  50%|█████     | 1/2 [00:45<00:45, 45.98s/it]Fetching 2 files: 100%|██████████| 2/2 [00:45<00:00, 22.99s/it]
+장치 cuda:0, 토크나이저 hf:Qwen/Qwen3.5-4B, 학습 매개변수 60,961,280
+에피소드 1362개 (검증 27개), 매개변수 4,266,699,776
+/tmp/stream-mind/src/stream_mind/train/sft.py:206: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  sched.step()
+step 0 loss 0.8427 lr 2.00e-05 68s
+step 5 loss 0.8230 lr 4.88e-05 384s
+step 10 loss 0.7483 lr 4.60e-05 707s
+step 15 loss 0.7349 lr 4.17e-05 997s
+step 20 loss 0.7211 lr 3.63e-05 1281s
+step 25 loss 0.7291 lr 3.02e-05 1570s
+step 30 loss 0.6938 lr 2.37e-05 1869s
+step 35 loss 0.7167 lr 1.73e-05 2178s
+step 40 loss 0.7031 lr 1.14e-05 2484s
+step 45 loss 0.6821 lr 6.42e-06 2777s
+step 50 loss 0.7396 lr 2.72e-06 3071s
+step 55 loss 0.6728 lr 5.46e-07 3360s
+step 59 loss 0.7075 lr 0.00e+00 3607s
+검증 손실 0.7789

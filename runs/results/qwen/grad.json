@@ -1,0 +1,15 @@
+{
+ "loss": [
+  2.7053147677717537,
+  1.4809286512177566
+ ],
+ "base_checked": 21,
+ "base_changed": [],
+ "trainable_tensors": 301,
+ "trainable_changed": 301,
+ "extra_changed": true,
+ "lora_b_tensors": 150,
+ "seconds": 20.3,
+ "passed": true,
+ "seconds_total": 33
+}

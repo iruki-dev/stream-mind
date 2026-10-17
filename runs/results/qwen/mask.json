@@ -1,0 +1,39 @@
+{
+ "stream": {
+  "episodes": 40,
+  "tokens": 32147,
+  "trained_ratio": 0.129,
+  "leaks_into_target": [],
+  "example_target": "<call tool=messenger op=read></call>44+48=92 <call tool=messenger op=send>92</call></think>\n<call tool=messenger op=read></call>44+24=68 <call tool=messenger op=send>68</call></think>\n"
+ },
+ "turn": {
+  "episodes": 40,
+  "tokens": 23899,
+  "trained_ratio": 0.13,
+  "leaks_into_target": [],
+  "example_target": "<call tool=messenger op=read></call>잡담 <call tool=messenger op=send>응</call></think>\n"
+ },
+ "general_stream": {
+  "episodes": 40,
+  "tokens": 18396,
+  "trained_ratio": 0.216,
+  "leaks_into_target": [],
+  "example_target": "<call tool=messenger op=read></call>답한다 <call tool=messenger op=send>상위 10 개 쿼리는 가장 인기 있는 검색어나 조회 항목을 의미합니다. CRUD 는 생성, 읽기, 수정, 삭제의 기본 데이터 조작 작업을 뜻합니다. Aggregation 은 데이터 집합을 집계하여 요약 정보를 추출하는 기능을 말합니다.</call></think>\n"
+ },
+ "sessions": {
+  "episodes": 40,
+  "tokens": 353058,
+  "trained_ratio": 0.175,
+  "leaks_into_target": [],
+  "example_target": "<call tool=messenger op=read></call>노트에 적는다 <call tool=notes op=add>주차번호는 1807</call>주차번호 노트 검색 <call tool=notes op=search>주차번호</call>노트에 주차번호는 1807 <call tool=messenger op=send>1807</call></think>\n<call tool=messenger op=read></call>이름은 하린 <call tool=messenger op=send>알겠어</call></think>\n<call tool="
+ },
+ "stream_lite": {
+  "episodes": 40,
+  "tokens": 103531,
+  "trained_ratio": 0.159,
+  "leaks_into_target": [],
+  "example_target": "판단 Ux Do So > S;U------;UU-----;UUU----;UUUU---;UUUUU--;UUUUUU-;UUUUUUU;UUUUUUU;</think>\n판단 Uo Do So > U;U------;UU-----;UUU----;UUUU---;UUUUU--;UUUUUU-;UUUUUUU;UUUUUUU;</think>\n판단 Uo Do So > U;</think>\n판단 Uo Dx Sx > U;</think>\n판단 Uo Dx So > U;</think>\n판단 Uo Do So > U;</think>\n판단 Uo Do So > U;</thin"
+ },
+ "passed": true,
+ "seconds_total": 8
+}

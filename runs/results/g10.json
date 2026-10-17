@@ -1,0 +1,52 @@
+{
+ "attempts": [
+  {
+   "steps": 200,
+   "examples": 60,
+   "replay": "0.5x",
+   "before": 0.0,
+   "after": 0.6,
+   "accepted": false,
+   "note": "버림: practice 0.00→0.60 (회귀 세트 하락)",
+   "regression_before": {
+    "arith": 0.67,
+    "reverse": 1.0,
+    "chat": 1.0,
+    "name": 0.83,
+    "freeway-lite:101": 1.0,
+    "snake-lite:102": 1.0
+   },
+   "regression_after": {
+    "arith": 0.17,
+    "reverse": 1.0,
+    "chat": 1.0,
+    "name": 0.33,
+    "freeway-lite:101": 1.0,
+    "snake-lite:102": 0.0
+   }
+  },
+  {
+   "steps": 200,
+   "examples": 60,
+   "replay": "2x",
+   "before": 0.0,
+   "after": 0.0,
+   "accepted": false,
+   "note": "버림: practice 0.00→0.00 (목표가 오르지 않음)"
+  },
+  {
+   "steps": 80,
+   "examples": 30,
+   "replay": "0.5x",
+   "before": 0.0,
+   "after": 0.0,
+   "accepted": false,
+   "note": "버림: practice 0.00→0.00 (목표가 오르지 않음)"
+  }
+ ],
+ "before": 0.0,
+ "after": 0.6,
+ "accepted": false,
+ "passed": false,
+ "note": "연습으로 처음 보는 도구 사용률이 0→0.60까지 올랐지만, 그 어댑터는 회귀 세트를 떨어뜨려 검문에서 거부됐다."
+}

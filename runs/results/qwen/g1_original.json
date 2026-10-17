@@ -1,0 +1,9 @@
+{
+ "n_per_bench": 100,
+ "original": {
+  "gsm8k": 0.37,
+  "gsm8k_ko": 0.1,
+  "kmmlu": 0.2,
+  "mmlu": 0.53
+ }
+}

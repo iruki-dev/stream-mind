@@ -1,0 +1,107 @@
+# Stream-Mind (가칭)
+
+하나의 끝나지 않는 스트림 위에서 입력을 받으면서 생각·출력·행동하는 텍스트 언어 모델을 만드는 프로젝트다.
+이 저장소는 설계안 로드맵 P0~P4 전체를 담고 있다. P0은 모델 없이 오케스트레이터(이벤트 구동, 상태 포크,
+도구 규격, 위험 등급)를 검증하고, P1~P4는 설계안의 하이브리드 백본을 직접 구현한 소형 모델(StreamLM)을
+스트림 형식으로 학습하고, 기억을 결합하고, 쉬는 시간에 스스로 공부하게 하고, 환경 RL을 한 뒤 관문마다 잰다.
+
+P0 설계 대응과 측정은 [docs/p0.md](docs/p0.md), P1~P4는 [docs/p1-p4.md](docs/p1-p4.md)에 있다.
+
+## 지금 상태
+
+| 단계 | 내용 | 관문 |
+|---|---|---|
+| P0 | 오케스트레이터(이벤트 구동, 상태 포크, 공통 도구 규격, 위험 등급) | 통과 |
+| P1 | StreamLM(Gated DeltaNet + sink·윈도 어텐션, 362만 매개변수)을 스트림 형식으로 SFT | 미달 (정적 −0.04, Snake-lite) |
+| P2 | 압축을 켠 채 학습, 노트 도구 연결 | 통과 (지연·메모리 일정, 장기 회상 유지) |
+| P3 | 유휴 학습(공고화, 실패 복습, 도구 연습, 질문 준비, 자기 출제, 공부법 밴딧), 어댑터 버전·삭제 | 통과 |
+| P4 | 환경 RL(게임·대화), 안전(오염 추적) | 미달 (RL 후보 거부, Snake-lite) |
+
+위 표는 GPU 없이 CPU 4코어에서 학습한 소형 모델(StreamLM)의 결과다.
+
+설계안의 학습 계획대로 공개 하이브리드 체크포인트 **Qwen3.5-0.8B**에서 출발해 다섯 단계(스트림 SFT, 큰 교사 증류,
+긴 세션 기억, 환경 RL, 유휴 자율 학습)를 Kaggle T4×2에서 돌렸다. 결과와 해석은 [docs/qwen.md](docs/qwen.md)에 있다.
+
+- 통과: 정적 대화 과제, 터미널·안전, 확인 가능한 사고, 세션 길이와 무관한 tick 비용, 원본 대비 G1 평균(0.31 / 0.30, KMMLU만 −0.11).
+- 미달: 실시간 게임, 긴 잡담 뒤 회상, 유휴 학습 반영, T4에서의 tick 예산. 관문 2~5는 모두 미달이다.
+목표 G1~G10 판정은 [docs/results.md](docs/results.md), 방법과 해석은 [docs/p1-p4.md](docs/p1-p4.md)에 있다.
+학습한 체크포인트(`runs/`)는 저장소에 넣지 않았다. 측정 결과 JSON은 `runs/results/`에 있다.
+
+## 들어 있는 것
+
+| 설계안 | 구현 | 파일 |
+|---|---|---|
+| 모델과 도구의 경계, 공통 도구 규격 (설명서·호출·관측·알림·신뢰 등급) | `Tool` 규격 | `src/stream_mind/tools/base.py` |
+| 도구 4개: 메신저, 터미널, 게임, 노트 | 각 도구 | `src/stream_mind/tools/` |
+| 핵심 모듈 2 · 영속 스트림 (`<obs>`, `<think>`, `<call>`, `<wait>`, `[T=t]`) | `PersistentStream` | `src/stream_mind/stream.py` |
+| 핵심 모듈 2 · 이벤트 구동 깨우기, 사고 예산, 미해결 질문 기록 | `Mind.step` | `src/stream_mind/mind.py` |
+| 핵심 모듈 3 · 상태 포크 (분기에서만 행동, 원 스트림은 실행 기록을 관측) | `Mind._branch` | `src/stream_mind/mind.py` |
+| 핵심 모듈 4 · 닫힌 행동 공간은 후보 점수 매기기, 마감까지 없으면 기본 행동 | `ActionRequest`, `GameTool` | `src/stream_mind/tools/` |
+| 핵심 모듈 5 · 행동 위험 등급 0/1/2, 내용 모르는 실행은 등급 2, 샌드박스 한 단계 하향 | `classify_shell`, `RiskGate` | `src/stream_mind/risk.py` |
+| 실시간 텍스트 게임 (Freeway, Snake) | 멈추지 않는 환경 | `src/stream_mind/envs/` |
+| 턴 방식 비교 기준 | `TurnAgent` | `src/stream_mind/baselines.py` |
+| 관문 1 측정 | 벤치마크 | `src/stream_mind/bench/gate1.py` |
+| 소형 하이브리드 체크포인트 연결 | `HFBackend` | `src/stream_mind/model/hf.py` |
+| 백본 (Gated DeltaNet + sink·윈도 어텐션, 어댑터) | `StreamLM` | `src/stream_mind/nn/` |
+| 스트림 규약, 학생 백엔드 | `TextStreamBackend`, `TorchBackend` | `src/stream_mind/model/` |
+| P1 데이터(교사, 누설 검사), SFT | `TeacherBackend`, `train/sft.py` | `src/stream_mind/data/`, `src/stream_mind/train/` |
+| P3 유휴 학습, 어댑터 저장소 | `IdleLearner`, `AdapterBank` | `src/stream_mind/idle/` |
+| P4 환경 RL | `rl_train` | `src/stream_mind/train/rl.py` |
+| 관문 2~5, G6·G8·G10 측정 | 평가기 | `src/stream_mind/bench/gates.py` |
+
+## 학습된 모델 직접 써 보기
+
+Qwen3.5-0.8B에 다섯 단계를 학습한 모델(4단계 체크포인트)과 대화하거나 게임을 시킬 수 있다. 화면에는 들어온 관측과
+모델이 쓴 사고·도구 호출이 그대로 흐른다. 한 세션의 대화는 같은 스트림에 이어지므로 앞에서 한 말을 기억해야 답할 수 있다.
+
+**Kaggle 노트북 (GPU, 브라우저):** [irukidev/stream-mind-demo](https://www.kaggle.com/code/irukidev/stream-mind-demo)(비공개)를
+**Edit**로 열고 위에서부터 셀을 실행한다. `chat(model)` 셀에서 직접 입력한다.
+
+**내 컴퓨터:**
+
+```bash
+pip install -e '.[hf]'
+kaggle kernels output irukidev/sm-stage4 -p ckpt --file-pattern 'stage4_stream.pt'   # 어댑터 82MB
+python -m stream_mind.demo --model ckpt/stage4_stream.pt                  # 대화 (GPU가 있으면 GPU)
+python -m stream_mind.demo --model ckpt/stage4_stream.pt --play freeway-lite --pressure 1
+```
+
+- 본체(Qwen3.5-0.8B, 약 1.7GB)는 처음 실행할 때 Hugging Face에서 받는다.
+- CPU에서는 메시지 하나에 5초 안팎이 걸린다.
+- 대화 중 명령은 `/think`(사고 보기 켜고 끄기), `/reset`(새 세션), `/quit`(끝내기)이다.
+
+## 빠른 시작
+
+```bash
+pip install -e '.[dev]'                    # torch 포함
+pytest -q                                  # 단위 테스트
+python -m stream_mind.bench.gate1 --seeds 20   # 관문 1
+```
+
+실제 모델(예: `Qwen/Qwen3.5-0.8B`, Gated DeltaNet 하이브리드)로 연기 시험:
+
+```bash
+pip install -e '.[hf]'
+python examples/hf_smoke.py --model Qwen/Qwen3.5-0.8B --seconds 60
+```
+
+전체 학습·측정 순서는 `scripts/pipeline.sh` (CPU에서 약 12시간). GPU는 `STREAM_MIND_DEVICE=cuda`
+또는 CLI `--device cuda`로 쓴다. Kaggle GPU에서 돌리는 방법은 [kaggle/README.md](kaggle/README.md)에 있다.
+
+## 관문 1 결과 (요약)
+
+시뮬레이션 백엔드, 시드 20개, 100프레임. 칸은 평균 점수.
+시간 압박 = 사고가 끝까지 수렴하는 시간 / 프레임 간격.
+
+| 게임 | 압박 | stream | turn | stream − turn |
+|---|---|---|---|---|
+| freeway | 0.25 | 7.60 | 7.60 | +0.00 |
+| freeway | 2 | 7.60 | 3.45 | +4.15 |
+| freeway | 4 | 7.60 | 0.35 | +7.25 |
+| snake | 0.25 | 16.90 | 16.90 | +0.00 |
+| snake | 2 | 16.80 | 7.50 | +9.30 |
+| snake | 4 | 15.50 | 2.40 | +13.10 |
+
+사고가 한 프레임 안에 끝나면 두 방식이 같고, 사고가 프레임을 넘기기 시작하면 stream이 턴 방식을
+크게 앞선다. **관문 1 통과.** 다만 이 결과는 언어 모델이 아니라 "생각할수록 판단이 좋아지는"
+계획기로 측정한 것이라, 검증한 것은 스케줄링과 포크의 제어 논리다. 전체 표와 한계는 docs/p0.md 참고.

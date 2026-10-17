@@ -1,0 +1,20 @@
+{
+  "id": "irukidev/stream-mind-demo",
+  "title": "stream-mind demo",
+  "code_file": "demo.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "dataset_sources": [
+    "irukidev/stream-mind-src"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [
+    "irukidev/sm-stage4"
+  ],
+  "model_sources": []
+}

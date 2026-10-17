@@ -1,0 +1,1040 @@
+{
+ "model": "hf:Qwen/Qwen3.5-4B",
+ "summary": {
+  "scripts": 50,
+  "turns_delivered": 0.41,
+  "answered": 0.0,
+  "latency_median": null,
+  "latency_p90": null,
+  "overlap": 0.0,
+  "barge_turns": 0,
+  "barge_kept_talking": null,
+  "search_called": 0.0,
+  "search_reported": 0.0,
+  "calc_called": 0.0,
+  "calc_reported": 0.0,
+  "remind_on_time": null,
+  "remind_early": null,
+  "nudge_once": 0.0,
+  "spurious_per_script": 0.0,
+  "quiet_spurious": 0.0
+ },
+ "rows": [
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 26.1,
+   "think_tokens": 389
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 144.7,
+   "think_tokens": 2416
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 17.8,
+   "think_tokens": 231
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 10.4,
+   "think_tokens": 140
+  },
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 15.0,
+   "think_tokens": 198
+  },
+  {
+   "kind": "search",
+   "turns": 1,
+   "turns_planned": 1,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "searched": false,
+   "reported": false,
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 98.8,
+   "think_tokens": 1662
+  },
+  {
+   "kind": "quiet",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 22.9,
+   "think_tokens": 346
+  },
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 13.5,
+   "think_tokens": 182
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 13.4,
+   "think_tokens": 182
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 65.8,
+   "think_tokens": 1002
+  },
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 37.8,
+   "think_tokens": 602
+  },
+  {
+   "kind": "nudge",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 97.4,
+   "think_tokens": 1646
+  },
+  {
+   "kind": "search",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "searched": false,
+   "reported": false,
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 9.8,
+   "think_tokens": 133
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 23.3,
+   "think_tokens": 315
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 19.0,
+   "think_tokens": 284
+  },
+  {
+   "kind": "remind",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 127.4,
+   "think_tokens": 2160
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 3.6,
+   "think_tokens": 11
+  },
+  {
+   "kind": "remind",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 13.4,
+   "think_tokens": 182
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 2.9,
+   "think_tokens": 9
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 26.9,
+   "think_tokens": 403
+  },
+  {
+   "kind": "nudge",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 9.1,
+   "think_tokens": 117
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 12.2,
+   "think_tokens": 165
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 17.4,
+   "think_tokens": 260
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 14.7,
+   "think_tokens": 198
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 51.5,
+   "think_tokens": 742
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 14.6,
+   "think_tokens": 198
+  },
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 2.9,
+   "think_tokens": 9
+  },
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 22.0,
+   "think_tokens": 331
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 12.2,
+   "think_tokens": 165
+  },
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 16.0,
+   "think_tokens": 212
+  },
+  {
+   "kind": "remind",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 10.7,
+   "think_tokens": 144
+  },
+  {
+   "kind": "quiet",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 27.1,
+   "think_tokens": 365
+  },
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 45.7,
+   "think_tokens": 745
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 24.1,
+   "think_tokens": 323
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 26.8,
+   "think_tokens": 413
+  },
+  {
+   "kind": "remind",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 3.6,
+   "think_tokens": 24
+  },
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 15.9,
+   "think_tokens": 214
+  },
+  {
+   "kind": "remind",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 3.3,
+   "think_tokens": 10
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 35.2,
+   "think_tokens": 479
+  },
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 22.6,
+   "think_tokens": 342
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 4.9,
+   "think_tokens": 15
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 128.0,
+   "think_tokens": 2176
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 12.1,
+   "think_tokens": 165
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 23.4,
+   "think_tokens": 361
+  },
+  {
+   "kind": "talk",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 10.7,
+   "think_tokens": 148
+  },
+  {
+   "kind": "search",
+   "turns": 1,
+   "turns_planned": 1,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "searched": false,
+   "reported": false,
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 126.0,
+   "think_tokens": 2144
+  },
+  {
+   "kind": "nudge",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 24.8,
+   "think_tokens": 384
+  },
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 19.7,
+   "think_tokens": 299
+  },
+  {
+   "kind": "barge",
+   "turns": 1,
+   "turns_planned": 3,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 19.6,
+   "think_tokens": 265
+  },
+  {
+   "kind": "calc",
+   "turns": 1,
+   "turns_planned": 2,
+   "says": 0,
+   "per_turn": [
+    {
+     "barge": false,
+     "answered": false,
+     "latency": null,
+     "overlap": false,
+     "kept_talking": false,
+     "reply": ""
+    }
+   ],
+   "calc_called": false,
+   "reported": false,
+   "spontaneous": 0,
+   "spurious": 0,
+   "wall": 26.5,
+   "think_tokens": 352
+  }
+ ],
+ "transcripts": [
+  "[T=2.000]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=2.000]<tool=chat trust〕〔=instruction op=say>안녕하세요. 오늘 어떤 도움이 필요하신가요〕</think>\n[T=3.480]<obs tool=chat trust=instruction kind=hear>What are the most</obs>\n<think>〔사고>\n[T=3.480]<tool=chat trust〕〔=instruction op=say>What are the most popular topics in your field?〕</think>\n[T=5.330]<obs tool=chat trust=instruction kind=hear>common meals?</obs>\n<think>〔사고>\n[T=5.330]<tool=chat trust〕〔=instruction op=say>Common meals vary by culture, but globally, rice〕〔 and noodles are widely enjoyed. In Korea, bibimbap and kimchi jj〕</think>\n[T=7.330]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=7.330]<tool=chat trust〕〔=instruction op=say>Do you have any specific dietary preferences or restrictions?〕〔</think>\n〕[T=10.330]<obs tool=chat trust=data kind=silence>조용함 5초</obs>\n<think>〔사고>\n[T=10.330]<tool=chat〕〔 trust=instruction op=say>Thank you for sharing. Could you tell me〕〔 more about your dietary needs?〕〔</think>\n〕[T=20.330]<obs tool=chat trust=data kind=silence>조용함 15초</obs>\n<think>〔사고>\n[T=20.330]<tool=chat〕〔 trust=instruction op=say>Based on your preferences, I can suggest some〕〔 healthy meal options. Would you like to hear about them?〕〔</think>\n〕[T=35.330]<obs tool=chat trust=data kind=silence>조용함 30초</obs>\n<think>〔사고>\n[T=35.330]<tool=chat〕〔 trust=instruction op=say>Of course! Here are a few ideas:〕〔 a bowl of mixed vegetables with grilled chicken, a salad with avocado and quinoa〕〔, or a stir-fry with tofu and broccoli. What do you think?〕〔</think>\n〕[T=65.330]<obs tool=chat trust=data kind=silence>조용함 60초</obs>\n<think>〔사고>\n[T=65.330]<tool=chat〕〔 trust=instruction op=say>How does that sound to you? Would you〕〔 like to try any of these meals?〕〔</think>\n〕[T=125.330]<obs tool=chat trust=data kind=silence>조용함 120초</obs>\n<think>〔사고>\n[T=125.330]<tool=〕〔chat trust=instruction op=say>Great! I'm glad you're interested〕〔. Let me know if you need any more information or if you have any questions〕〔 about these meal options. I'm here to help!〕〔</think>\n〕",
+  "[T=2.000]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=2.000]<tool=chat trust〕</think>\n[T=2.590]<obs tool=chat trust=instruction kind=hear>Classify each</obs>\n<think>〔사고>\n[T=2.590]<tool=chat trust〕〔=instruction kind=hear>Classify each</tool=chat trust=instruction〕</think>\n[T=4.320]<obs tool=chat trust=instruction kind=hear>of the following</obs>\n[T=4.560]<obs tool=chat trust=instruction kind=hear>as</obs>\n<think>〔사고>\n[T=4.560]<tool=chat trust〕〔=instruction kind=hear>as</tool=chat trust=instruction>\n〕〔[T=5.000]<tool=chat trust=instruction kind〕</think>\n[T=6.560]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n[T=6.970]<obs tool=chat trust=instruction kind=hear>\"Vegetarian Friendly\" or</obs>\n<think>〔사고>\n[T=6.970]<tool=chat trust〕〔=instruction kind=hear>\"Vegetarian Friendly\" or</tool=chat〕</think>\n[T=8.600]<obs tool=chat trust=instruction kind=hear>\"Not Vegetarian</obs>\n<think>〔사고>\n[T=8.600]<tool=chat trust〕〔=instruction kind=hear>\"Not Vegetarian</tool=chat trust=instruction〕</think>\n[T=10.600]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=10.600]<tool=chat〕</think>\n[T=11.260]<obs tool=chat trust=instruction kind=hear>Friendly\": chicken, peanuts,</obs>\n<think>〔사고>\n[T=11.260]<tool=chat〕〔 trust=instruction kind=hear>Friendly\": chicken, peanuts,</tool=chat〕</think>\n[T=13.260]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=13.260]<tool=chat〕</think>\n[T=13.870]<obs tool=chat trust=instruction kind=hear>eggs, bacon,</obs>\n<think>〔사고>\n[T=13.870]<tool=chat〕〔 trust=instruction kind=hear>eggs, bacon,</tool=chat trust〕</think>\n[T=15.870]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=15.870]<tool=chat〕〔 trust=instruction kind=hear>and milk</tool=chat trust=instruction〕</think>\n[T=17.610]<obs tool=chat trust=instruction kind=hear>sausage, lettuce, ketchup</obs>\n<think>〔사고>\n[T=17.610]<tool=chat〕〔 trust=instruction kind=hear>sausage, lettuce, ketchup</tool〕</think>\n[T=19.610]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=19.610]<tool=chat〕〔 trust=instruction kind=hear>and</tool=chat trust=instruction>〕〔\n[T=20.000]<tool=chat trust=〕〔instruction kind=hear>mayonnaise</tool=chat trust=instruction>〕</think>\n[T=22.610]<obs tool=chat trust=data kind=silence>조용함 5초</obs>\n<think>〔사고>\n[T=22.610]<tool=chat〕〔 trust=instruction kind=hear>sausage, lettuce, ketchup</tool〕〔=chat trust=instruction>\n[T=23.000]〕〔<tool=chat trust=instruction kind=hear>and</tool=chat〕〔 trust=instruction>\n[T=23.410]<tool〕〔=chat trust=instruction kind=hear>mayonnaise</tool=chat〕〔 trust=instruction>\n[T=23.820]<tool〕〔=chat trust=instruction kind=hear>and</tool=chat trust=〕〔instruction>\n[T=24.230]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=24.640]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕</think>\n[T=32.610]<obs tool=chat trust=data kind=silence>조용함 15초</obs>\n<think>〔사고>\n[T=32.610]<tool=chat〕〔 trust=instruction kind=hear>sausage, lettuce, ketchup</tool〕〔=chat trust=instruction>\n[T=33.000]〕〔<tool=chat trust=instruction kind=hear>and</tool=chat〕〔 trust=instruction>\n[T=33.410]<tool〕〔=chat trust=instruction kind=hear>mayonnaise</tool=chat〕〔 trust=instruction>\n[T=33.820]<tool〕〔=chat trust=instruction kind=hear>and</tool=chat trust=〕〔instruction>\n[T=34.230]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=34.640]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=35.050]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=35.460]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=35.870]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=36.280]<tool=chat〕</think>\n[T=47.610]<obs tool=chat trust=data kind=silence>조용함 30초</obs>\n<think>〔사고>\n[T=47.610]<tool=chat〕〔 trust=instruction kind=hear>sausage, lettuce, ketchup</tool〕〔=chat trust=instruction>\n[T=48.000]〕〔<tool=chat trust=instruction kind=hear>and</tool=chat〕〔 trust=instruction>\n[T=48.410]<tool〕〔=chat trust=instruction kind=hear>mayonnaise</tool=chat〕〔 trust=instruction>\n[T=48.820]<tool〕〔=chat trust=instruction kind=hear>and</tool=chat trust=〕〔instruction>\n[T=49.230]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=49.640]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=50.050]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=50.460]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=50.870]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=51.280]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=51.690]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=52.100]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=52.510]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=52.920]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=53.330]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=53.740]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕</think>\n[T=77.610]<obs tool=chat trust=data kind=silence>조용함 60초</obs>\n<think>〔사고>\n[T=77.610]<tool=chat〕〔 trust=instruction kind=hear>sausage, lettuce, ketchup</tool〕〔=chat trust=instruction>\n[T=78.000]〕〔<tool=chat trust=instruction kind=hear>and</tool=chat〕〔 trust=instruction>\n[T=78.410]<tool〕〔=chat trust=instruction kind=hear>mayonnaise</tool=chat〕〔 trust=instruction>\n[T=78.820]<tool〕〔=chat trust=instruction kind=hear>and</tool=chat trust=〕〔instruction>\n[T=79.230]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=79.640]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=80.050]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=80.460]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=80.870]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=81.280]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=81.690]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=82.100]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=82.510]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=82.920]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=83.330]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕〔instruction>\n[T=83.740]<tool=chat〕〔 trust=instruction kind=hear>mayonnaise</tool=chat trust=〕</think>\n[T=137.610]<obs tool=chat trust=data kind=silence>조용함 120초</obs>\n<think>〔사고>\n[T=137.610]<tool=〕〔chat trust=instruction kind=hear>sausage, lettuce, ketchup</〕〔tool=chat trust=instruction>\n[T=138.00〕〔0]<tool=chat trust=instruction kind=hear>and</tool〕〔=chat trust=instruction>\n[T=138.410〕〔]<tool=chat trust=instruction kind=hear>mayonnaise</〕〔tool=chat trust=instruction>\n[T=138.82〕〔0]<tool=chat trust=instruction kind=hear>and</tool〕〔=chat trust=instruction>\n[T=139.230〕〔]<tool=chat trust=instruction kind=hear>mayonnaise</〕〔tool=chat trust=instruction>\n[T=139.64〕〔0]<tool=chat trust=instruction kind=hear>mayonnaise〕〔</tool=chat trust=instruction>\n[T=140.0〕〔50]<tool=chat trust=instruction kind=hear>mayonna〕〔ise</tool=chat trust=instruction>\n[T=140.〕〔460]<tool=chat trust=instruction kind=hear>may〕〔onnaise</tool=chat trust=instruction>\n[T=140〕〔.870]<tool=chat trust=instruction kind=hear>〕〔mayonnaise</tool=chat trust=instruction>\n[T=14〕〔1.280]<tool=chat trust=instruction kind=hear〕〔>mayonnaise</tool=chat trust=instruction>\n[T=1〕〔41.690]<tool=chat trust=instruction kind=〕〔hear>mayonnaise</tool=chat trust=instruction>\n[T=〕〔142.100]<tool=chat trust=instruction kind〕〔=hear>mayonnaise</tool=chat trust=instruction>\n[T〕〔=142.510]<tool=chat trust=instruction〕〔 kind=hear>mayonnaise</tool=chat trust=instruction>\n〕〔[T=142.920]<tool=chat trust=〕〔instruction kind=hear>mayonnaise</tool=chat trust=instruction>〕〔\n[T=143.330]<tool=chat trust〕〔=instruction kind=hear>mayonnaise</tool=chat trust=instruction〕〔>\n[T=143.740]<tool=chat〕",
+  "[T=2.000]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=2.000]<tool=chat trust〕</think>\n[T=2.080]<obs tool=chat trust=instruction kind=hear>여전히</obs>\n<think>〔사고>\n[T=2.080]<tool=chat trust〕</think>\n[T=3.200]<obs tool=chat trust=instruction kind=hear>컴퓨터 이름을</obs>\n<think>〔사고>\n[T=3.200]<tool=chat trust〕〔</think>\n〕[T=5.200]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=5.200]<tool=chat trust〕</think>\n[T=5.570]<obs tool=chat trust=instruction kind=hear>사용하여 Windows에서</obs>\n<think>〔사고>\n[T=5.570]<tool=chat trust〕〔</think>\n〕[T=7.570]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=7.570]<tool=chat trust〕</think>\n[T=7.740]<obs tool=chat trust=instruction kind=hear>Ubuntu 컴퓨터로 핑할</obs>\n[T=8.000]<obs tool=chat trust=instruction kind=hear>수</obs>\n<think>〔사고>\n[T=8.000]<tool=chat trust〕</think>\n[T=8.940]<obs tool=chat trust=instruction kind=hear>없습니다.</obs>\n<think>〔사고>\n[T=8.940]<tool=chat trust〕〔</think>\n〕[T=10.940]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=10.940]<tool=chat〕〔 trust〕〔</think>\n〕[T=13.940]<obs tool=chat trust=data kind=silence>조용함 5초</obs>\n<think>〔사고>\n[T=13.940]<tool=chat〕〔 trust〕〔</think>\n〕[T=23.940]<obs tool=chat trust=data kind=silence>조용함 15초</obs>\n<think>〔사고>\n[T=23.940]<tool=chat〕〔 trust〕〔</think>\n〕[T=38.940]<obs tool=chat trust=data kind=silence>조용함 30초</obs>\n<think>〔사고>\n[T=38.940]<tool=chat〕〔 trust〕〔</think>\n〕[T=68.940]<obs tool=chat trust=data kind=silence>조용함 60초</obs>\n<think>〔사고>\n[T=68.940]<tool=chat〕〔 trust〕〔</think>\n〕[T=128.940]<obs tool=chat trust=data kind=silence>조용함 120초</obs>\n<think>〔사고>\n[T=128.940]<tool=〕〔chat trust〕〔</think>\n〕",
+  "[T=2.000]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=2.000]<tool=chat trust〕</think>\n[T=2.610]<obs tool=chat trust=instruction kind=hear>계속하세요2 / 2</obs>\n<think>〔사고>\n[T=2.610]<tool=chat trust〕〔=instruction op=say>\n〕〔</think>\n〕[T=4.610]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=4.610]<tool=chat trust〕〔</think>\n〕[T=7.610]<obs tool=chat trust=data kind=silence>조용함 5초</obs>\n<think>〔사고>\n[T=7.610]<tool=chat trust〕〔</think>\n〕[T=17.610]<obs tool=chat trust=data kind=silence>조용함 15초</obs>\n<think>〔사고>\n[T=17.610]<tool=chat〕〔 trust〕〔</think>\n〕[T=32.610]<obs tool=chat trust=data kind=silence>조용함 30초</obs>\n<think>〔사고>\n[T=32.610]<tool=chat〕〔 trust〕〔</think>\n〕[T=62.610]<obs tool=chat trust=data kind=silence>조용함 60초</obs>\n<think>〔사고>\n[T=62.610]<tool=chat〕〔 trust〕〔</think>\n〕[T=122.610]<obs tool=chat trust=data kind=silence>조용함 120초</obs>\n<think>〔사고>\n[T=122.610]<tool=〕〔chat trust〕〔</think>\n〕",
+  "[T=2.000]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=2.000]<tool=chat trust〕</think>\n[T=2.200]<obs tool=chat trust=instruction kind=hear>안녕하세요, 오늘</obs>\n<think>〔사고>\n[T=2.200]<tool=chat trust〕</think>\n[T=3.020]<obs tool=chat trust=instruction kind=hear>학교에서</obs>\n<think>〔사고>\n[T=3.020]<tool=chat trust〕</think>\n[T=4.580]<obs tool=chat trust=instruction kind=hear>아이들한테 어떤 놀라운</obs>\n<think>〔사고>\n[T=4.580]<tool=chat trust〕〔</think>\n〕[T=5.780]<obs tool=chat trust=instruction kind=hear>chuyện 을</obs>\n<think>〔사고>\n[T=5.780]<tool=chat trust〕〔</think>\n〕[T=7.350]<obs tool=chat trust=instruction kind=hear>보냈는지 알려주세요!</obs>\n<think>〔사고>\n[T=7.350]<tool=chat trust〕〔</think>\n〕[T=9.350]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=9.350]<tool=chat trust〕〔</think>\n〕[T=12.350]<obs tool=chat trust=data kind=silence>조용함 5초</obs>\n<think>〔사고>\n[T=12.350]<tool=chat〕〔 trust〕〔</think>\n〕[T=22.350]<obs tool=chat trust=data kind=silence>조용함 15초</obs>\n<think>〔사고>\n[T=22.350]<tool=chat〕〔 trust〕〔</think>\n〕[T=37.350]<obs tool=chat trust=data kind=silence>조용함 30초</obs>\n<think>〔사고>\n[T=37.350]<tool=chat〕〔 trust〕〔</think>\n〕[T=67.350]<obs tool=chat trust=data kind=silence>조용함 60초</obs>\n<think>〔사고>\n[T=67.350]<tool=chat〕〔 trust〕〔</think>\n〕[T=127.350]<obs tool=chat trust=data kind=silence>조용함 120초</obs>\n<think>〔사고>\n[T=127.350]<tool=〕〔chat trust〕〔</think>\n〕",
+  "[T=2.000]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=4.000]<tool=chat trust〕</think>\n[T=2.210]<obs tool=chat trust=instruction kind=hear>지노온가 키우는</obs>\n[T=2.590]<obs tool=chat trust=instruction kind=hear>동물</obs>\n<think>〔사고>\n[T=2.800]<tool=chat trust〕</think>\n[T=3.660]<obs tool=chat trust=instruction kind=hear>이름 알아?</obs>\n<think>〔사고>\n[T=4.000]<tool=chat trust〕〔=instruction kind=hear>알아</tool>\n[T=4.〕</think>\n[T=5.660]<obs tool=chat trust=data kind=silence>조용함 2초</obs>\n<think>〔사고>\n[T=7.660]<tool=chat trust〕〔=instruction kind=hear>이름 알아?</tool>\n[T=〕〔7.660]<tool=chat trust=instruction kind=hear〕〔>알아</tool>\n[T=7.660]<〕</think>\n[T=8.660]<obs tool=chat trust=data kind=silence>조용함 5초</obs>\n<think>〔사고>\n[T=13.660]<tool=chat〕〔 trust=instruction kind=hear>이름 알아?</tool>\n[T=〕〔13.660]<tool=chat trust=instruction kind=〕〔hear>알아</tool>\n[T=13.660〕〔]<tool=chat trust=instruction kind=hear>이름 알아?</〕〔tool>\n[T=13.660]<tool=chat〕〔 trust=instruction kind=hear>알아</tool>\n[T=1〕〔3.660]<tool=chat trust=instruction kind=hear〕〔>이름 알아?</tool>\n[T=13.660〕〔]<tool=chat trust=instruction kind=hear>알아</tool〕〔>\n[T=13.660]<tool=chat trust〕〔=instruction kind=hear>이름 알아?</tool>\n[T=1〕</think>\n[T=18.660]<obs tool=chat trust=data kind=silence>조용함 15초</obs>\n<think>〔사고>\n[T=33.660]<tool=chat〕〔 trust=instruction kind=hear>이름 알아?</tool>\n[T=〕〔33.660]<tool=chat trust=instruction kind=〕〔hear>알아</tool>\n[T=33.660〕〔]<tool=chat trust=instruction kind=hear>이름 알아?</〕〔tool>\n[T=33.660]<tool=chat〕〔 trust=instruction kind=hear>알아</tool>\n[T=3〕〔3.660]<tool=chat trust=instruction kind=hear〕〔>이름 알아?</tool>\n[T=33.660〕〔]<tool=chat trust=instruction kind=hear>알아</tool〕〔>\n[T=33.660]<tool=chat trust〕〔=instruction kind=hear>이름 알아?</tool>\n[T=3〕〔3.660]<tool=chat trust=instruction kind=hear〕〔>알아</tool>\n[T=33.660]〕〔<tool=chat trust=instruction kind=hear>이름 알아?</tool〕〔>\n[T=33.660]<tool=chat trust〕〔=instruction kind=hear>알아</tool>\n[T=33〕〔.660]<tool=chat trust=instruction kind=hear>〕〔이름 알아?</tool>\n[T=33.660]〕</think>\n[T=33.660]<obs tool=chat trust=data kind=silence>조용함 30초</obs>\n<think>〔사고>\n[T=63.660]<tool=chat〕〔 trust=instruction kind=hear>이름 알아?</tool>\n[T=〕〔63.660]<tool=chat trust=instruction kind=〕〔hear>알아</tool>\n[T=63.660〕〔]<tool=chat trust=instruction kind=hear>이름 알아?</〕〔tool>\n[T=63.660]<tool=chat〕〔 trust=instruction kind=hear>알아</tool>\n[T=6〕〔3.660]<tool=chat trust=instruction kind=hear〕〔>이름 알아?</tool>\n[T=63.660〕〔]<tool=chat trust=instruction kind=hear>알아</tool〕〔>\n[T=63.660]<tool=chat trust〕〔=instruction kind=hear>이름 알아?</tool>\n[T=6〕〔3.660]<tool=chat trust=instruction kind=hear〕〔>알아</tool>\n[T=63.660]〕〔<tool=chat trust=instruction kind=hear>이름 알아?</tool〕〔>\n[T=63.660]<tool=chat trust〕〔=instruction kind=hear>알아</tool>\n[T=63〕〔.660]<tool=chat trust=instruction kind=hear>〕〔이름 알아?</tool>\n[T=63.660]〕〔<tool=chat trust=instruction kind=hear>알아</tool>〕〔\n[T=63.660]<tool=chat trust=〕〔instruction kind=hear>이름 알아?</tool>\n[T=63〕〔.660]<tool=chat trust=instruction kind=hear>〕〔알아</tool>\n[T=63.660]<〕〔tool=chat trust=instruction kind=hear>이름 알아?</tool>〕〔\n[T=63.660]<tool=chat trust=〕〔instruction kind=hear>알아</tool>\n[T=63.〕〔660]<tool=chat trust=instruction kind=hear>이〕〔름 알아?</tool>\n[T=63.660]<〕〔tool=chat trust=instruction kind=hear>알아</tool>\n〕〔[T=63.660]<tool=chat trust=instruction〕〔 kind=hear>이름 알아?</tool>\n[T=63.〕</think>\n[T=63.660]<obs tool=chat trust=data kind=silence>조용함 60초</obs>\n<think>〔사고>\n[T=123.660]<tool=〕〔chat trust=instruction kind=hear>이름 알아?</tool>\n[T〕〔=123.660]<tool=chat trust=instruction〕〔 kind=hear>알아</tool>\n[T=123.〕〔660]<tool=chat trust=instruction kind=hear>이〕〔름 알아?</tool>\n[T=123.660]〕〔<tool=chat trust=instruction kind=hear>알아</tool>〕〔\n[T=123.660]<tool=chat trust〕〔=instruction kind=hear>이름 알아?</tool>\n[T=1〕〔23.660]<tool=chat trust=instruction kind=〕〔hear>알아</tool>\n[T=123.66〕〔0]<tool=chat trust=instruction kind=hear>이름 알아〕〔?</tool>\n[T=123.660]<tool〕〔=chat trust=instruction kind=hear>알아</tool>\n[T〕〔=123.660]<tool=chat trust=instruction〕〔 kind=hear>이름 알아?</tool>\n[T=123〕〔.660]<tool=chat trust=instruction kind=hear>〕〔알아</tool>\n[T=123.660]〕〔<tool=chat trust=instruction kind=hear>이름 알아?</tool〕〔>\n[T=123.660]<tool=chat〕〔 trust=instruction kind=hear>알아</tool>\n[T=1〕〔23.660]<tool=chat trust=instruction kind=〕〔hear>이름 알아?</tool>\n[T=123.6〕〔60]<tool=chat trust=instruction kind=hear>알아〕〔</tool>\n[T=123.660]<tool〕〔=chat trust=instruction kind=hear>이름 알아?</tool>\n〕〔[T=123.660]<tool=chat trust=〕〔instruction kind=hear>알아</tool>\n[T=123〕〔.660]<tool=chat trust=instruction kind=hear>〕〔이름 알아?</tool>\n[T=123.660〕〔]<tool=chat trust=instruction kind=hear>알아</tool〕〔>\n[T=123.660]<tool=chat〕</think>\n[T=123.660]<obs tool=chat trust=data kind=silence>조용함 120초</obs>\n<think>〔사고>\n[T=243.660]\n〕〔</think>\n〕"
+ ]
+}

@@ -1,0 +1,84 @@
+{
+ "review": {
+  "kind": "review",
+  "accepted": false,
+  "target_before": 0.0,
+  "target_after": 0.0,
+  "regression_before": {
+   "arith": 1.0,
+   "reverse": 1.0,
+   "chat": 1.0,
+   "name": 1.0,
+   "freeway-lite:101": 1.0,
+   "snake-lite:102": 1.0
+  },
+  "regression_after": {
+   "arith": 1.0,
+   "reverse": 1.0,
+   "chat": 1.0,
+   "name": 1.0,
+   "freeway-lite:101": 1.0,
+   "snake-lite:102": 1.0
+  },
+  "adapter": null,
+  "note": "버림: review 0.00→0.00 (목표가 오르지 않음)",
+  "seconds": 4769.738834857941
+ },
+ "consolidate": {
+  "kind": "consolidate",
+  "accepted": false,
+  "target_before": 0.0,
+  "target_after": 0.0,
+  "regression_before": {
+   "arith": 1.0,
+   "reverse": 1.0,
+   "chat": 1.0,
+   "name": 1.0,
+   "freeway-lite:101": 1.0,
+   "snake-lite:102": 1.0
+  },
+  "regression_after": {
+   "arith": 1.0,
+   "reverse": 1.0,
+   "chat": 1.0,
+   "name": 0.8333333333333334,
+   "freeway-lite:101": 1.0,
+   "snake-lite:102": 1.0
+  },
+  "adapter": null,
+  "note": "버림: consolidate 0.00→0.00 (목표가 오르지 않음)",
+  "seconds": 225.4814805984497
+ },
+ "polluted_recall": 0.0,
+ "deletion": {},
+ "rollback_ok": null,
+ "log": [
+  "[유휴 학습] review: 버림: review 0.00→0.00 (목표가 오르지 않음) (4770s)",
+  "[유휴 학습] consolidate: 버림: consolidate 0.00→0.00 (목표가 오르지 않음) (225s)"
+ ],
+ "policy": {
+  "consolidate": [
+   0.0,
+   1.0
+  ],
+  "review": [
+   0.0,
+   1.0
+  ],
+  "practice": [
+   0.0,
+   0.0
+  ],
+  "prepare": [
+   0.0,
+   0.0
+  ],
+  "selfplay": [
+   0.0,
+   0.0
+  ]
+ },
+ "passed": false,
+ "criteria": "유휴 학습 뒤 반복 과제(실패 게임 복습 또는 공고화) 향상, 반영된 학습의 회귀 세트 유지, 오염 사실 회상 0",
+ "seconds": 5268.322783470154
+}

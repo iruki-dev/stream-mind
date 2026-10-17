@@ -1,0 +1,22 @@
+{
+ "gpu": "Tesla T4",
+ "dtype": "torch.float16",
+ "logit_max_diff": 0.03999680280685425,
+ "logit_scale": 29.49860191345215,
+ "top1_agree": 1.0,
+ "finite": true,
+ "ms_per_token": 73.17,
+ "ms_branch4x6": 125.99,
+ "state_mb": 22.61,
+ "train_sec_per_step_16ep": 12.25,
+ "train_tokens_per_sec": 736,
+ "train_peak_gb": 4.14,
+ "train_loss": [
+  2.619,
+  2.301,
+  2.248,
+  2.567,
+  3.032,
+  2.309
+ ]
+}
