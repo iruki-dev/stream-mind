@@ -169,7 +169,10 @@ class LiveTeacher(TextStreamBackend):
                 break
         mem.out = mem.out[len(chunk):]
         mem.out_emitted += chunk
-        return chunk, used, not mem.out, used * self.spt
+        # 학생은 </call>에서 멈추고, 실행 기록이 들어온 뒤에야 더 말할지(<call) 끝낼지(</think>) 정한다.
+        # 마지막 구절 뒤에도 같이 멈춰야 "기록 뒤에 끝낸다"를 배운다 (안 그러면 기록 뒤엔 늘 말을 잇는 줄 안다).
+        finished = not mem.out and not chunk.endswith("</call>")
+        return chunk, used, finished, used * self.spt
 
     def _choose(self, state: TextState, request: ActionRequest) -> tuple[str | None, int, float]:
         return None, 0, 0.0  # 마감 있는 요청은 이 대화 도구에 없다

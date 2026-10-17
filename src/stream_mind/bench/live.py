@@ -192,6 +192,22 @@ def first_pairs(scripts: list[dict], rows: list[dict]) -> list[tuple[str, str, s
     return pairs
 
 
+def judge_files(paths: list[str], scripts_path: str, model_id: str, out: str) -> int:
+    """여러 결과 파일(두 장에 나눠 돈 것)을 합쳐 요약하고, 첫 답을 원본과 짝지어 판정한다."""
+    scripts = [json.loads(x) for x in open(scripts_path, encoding="utf-8") if x.strip()]
+    rows, logs = [], []
+    for p in paths:
+        d = json.loads(Path(p).read_text(encoding="utf-8"))
+        rows += d["rows"]
+        logs += d.get("transcripts", [])
+    picked = [scripts[r["script_index"]] for r in rows]
+    res = {"summary": summarize(rows), "judge": judge(model_id, first_pairs(picked, rows)), "rows": rows,
+           "transcripts": logs, "sources": paths}
+    print(json.dumps(res["summary"], ensure_ascii=False, indent=1), "\n판정", res["judge"], flush=True)
+    Path(out).write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", help="스트림 모델 체크포인트 (.pt)")
@@ -202,8 +218,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--spt", type=float, default=0.05, help="가상 시계의 토큰당 시간 (교사와 같게)")
     ap.add_argument("--transcripts", type=int, default=6, help="기록을 남길 대본 수")
+    ap.add_argument("--start", type=int, default=0, help="대본 몇 번째부터 (두 장에 나눠 돌릴 때)")
+    ap.add_argument("--max-tokens", type=int, default=3000, help="대본 하나에서 생성할 토큰 상한")
+    ap.add_argument("--judge-from", nargs="+", help="이미 돈 결과 JSON들로 말의 질만 판정한다 (모델을 따로 띄워)")
     ap.add_argument("--out", required=True)
     args = ap.parse_args(argv)
+    if args.judge_from:
+        return judge_files(args.judge_from, args.scripts, args.judge or "Qwen/Qwen3.5-4B", args.out)
     from ..model.torch_backend import TorchBackend
     from ..nn.tokenizer import set_tokenizer, tokenizer_of
 
@@ -216,13 +237,15 @@ def main(argv: list[str] | None = None) -> int:
         set_tokenizer(tokenizer_of(model).name)
         if hasattr(model, "fold_pinned"):
             model.fold_pinned()
-    scripts = [json.loads(x) for x in open(args.scripts, encoding="utf-8") if x.strip()][: args.n]
+    scripts = [json.loads(x) for x in open(args.scripts, encoding="utf-8") if x.strip()]
+    scripts = scripts[args.start: args.start + args.n]
     rows, logs = [], []
     t0 = time.time()
     for i, s in enumerate(scripts):
         backend = TorchBackend(model, seconds_per_token=args.spt, max_thought_tokens=600,
                                record=i < args.transcripts)
-        r, mind = run_one(backend, s)
+        r, mind = run_one(backend, s, max_tokens=args.max_tokens)
+        r["script_index"] = args.start + i
         rows.append(r)
         if i < args.transcripts:
             logs.append("".join(("〔" + t + "〕") if o else t for t, o in mind.state.transcript.segments[1:]))
