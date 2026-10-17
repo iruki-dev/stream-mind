@@ -77,9 +77,14 @@ def clean(script: dict[str, Any]) -> dict[str, Any] | None:
     return s
 
 
-def tools_for(script: dict[str, Any], names: dict[str, str], delay: float = 4.0) -> list:
+def tools_for(script: dict[str, Any], names: dict[str, str], delay: float = 4.0,
+              give_up: float | None = None) -> list:
+    """give_up(평가용): 모델이 이만큼 조용하면 사용자 차례가 구절 수를 기다리지 않고 시작한다.
+    대본에 먼저 말하기(조용함 박자: 알림·재촉)가 있으면 그 시간만큼 더 기다린다."""
+    wait_extra = max((b.get("after", 0) for b in script["beats"] if b["on"] == "silence"), default=0)
     turns = [UserTurn([(float(g), t) for g, t in u["chunks"]], int(u.get("after_says", 0)),
-                      bool(u.get("barge", False)))
+                      bool(u.get("barge", False)),
+                      give_up=None if give_up is None else give_up + wait_extra)
              for u in script["user"]]
     tools: list = [LiveChat(turns, name=names["chat"])]
     roles = {a[1] for b in script["beats"] for a in b["acts"] if a[0] == "call"}

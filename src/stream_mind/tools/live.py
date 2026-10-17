@@ -30,6 +30,7 @@ class UserTurn:
     after_says: int = 0  # 모델이 지금까지 이만큼 말한 뒤에 시작한다 (누적 구절 수)
     barge: bool = False  # 참이면 그 구절 직후에 끼어든다. 거짓이면 모델이 조용해진 뒤 첫 간격만큼 있다가
     start: float | None = None  # 정해지면 절대 시각
+    give_up: float | None = None  # 평가용: 모델이 이만큼 조용하면 구절 수가 모자라도 말을 시작한다
 
 
 @dataclass
@@ -64,7 +65,11 @@ class LiveChat(Tool):
         turn = self.turns[self._turn]
         if turn.start is None:
             if len(self.said) < turn.after_says:
-                return None  # 모델이 아직 그만큼 말하지 않았다
+                # 모델이 아직 그만큼 말하지 않았다. 평가에서는 모델의 답이 원본보다 짧을 수 있으니,
+                # 모델이 충분히 조용하면 사용자가 그냥 말을 잇는다.
+                if turn.give_up is None:
+                    return None
+                return self._last + max(turn.chunks[0][0], turn.give_up)
             if turn.barge:
                 return self._says_at[turn.after_says] + turn.chunks[0][0]
             # 조용해진 뒤: 모델이 또 말하면 마지막 말에서 다시 잰다 (첫 조각이 나가면 고정)

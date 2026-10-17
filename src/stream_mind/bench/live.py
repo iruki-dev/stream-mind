@@ -38,9 +38,9 @@ def _norm(s: str) -> str:
 
 
 def run_one(backend, script: dict[str, Any], until: float = 400.0,
-            max_tokens: int = 3000) -> tuple[dict[str, Any], Any]:
+            max_tokens: int = 3000, give_up: float | None = 20.0) -> tuple[dict[str, Any], Any]:
     names = {"chat": "chat", "calc": "calc", "search": "search"}
-    tools = tools_for(script, names)
+    tools = tools_for(script, names, give_up=give_up)
     mind = Mind(backend, tools, SimClock(), MindConfig(**LIVE_MIND))
     t0 = time.time()
     # 멈추지 않고 말하거나 생각하는 모델은 토큰 상한에서 끊는다 (그 자체가 결과다: runaway)
@@ -105,8 +105,8 @@ def analyze(script: dict[str, Any], chat: LiveChat, search: Search | None, calc_
             out["reminded_early"] = any(t_ack + 2 < t < t_ack + due - 2 for t, _ in spont)
             expected = 1 if win else 0
     if kind == "nudge" and len(turns) >= 2:
-        last_user = turns[-1][0]
-        n = len([1 for t, _ in spont if turns[1][-1] < t < last_user])
+        back = turns[2][0] if len(turns) > 2 else float("inf")  # 사용자가 돌아온 때 (없으면 끝까지)
+        n = len([1 for t, _ in spont if turns[1][-1] < t < back])
         out["nudges"] = n
         expected = min(n, 1)
     out["spontaneous"] = len(spont)
