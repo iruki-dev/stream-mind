@@ -138,7 +138,9 @@ class HFStreamLM(AdapterMixin, nn.Module):
                 self._folded[name] = (self.adapter_state(name), w)
                 for _, m in self.lora_modules():
                     if name in m.lora_a:
-                        m._backup = getattr(m, "_backup", None) or m.base.weight.detach().clone()
+                        if getattr(m, "_backup", None) is None:
+                            # 보관본은 CPU에 둔다 (GPU에 두면 본체 가중치가 두 벌이 되어 4B가 T4에 안 들어간다)
+                            m._backup = m.base.weight.detach().to("cpu", copy=True)
                         d = m.lora_b[name] @ m.lora_a[name] * (m.scales[name] * w)
                         m.base.weight.add_(d.to(m.base.weight.dtype))
                 self.remove_adapter(name)

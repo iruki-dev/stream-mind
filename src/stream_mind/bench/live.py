@@ -226,8 +226,11 @@ def main(argv: list[str] | None = None) -> int:
     out = {"model": args.model or args.base, "summary": summarize(rows), "rows": rows, "transcripts": logs}
     print(json.dumps(out["summary"], ensure_ascii=False, indent=1), flush=True)
     if args.judge:
-        del model
+        import gc
+
         import torch
+        del model, backend, mind  # 실행기와 백엔드가 모델을 붙잡고 있다
+        gc.collect()
         torch.cuda.empty_cache()
         out["judge"] = judge(args.judge, first_pairs(scripts, rows))
         print("판정", out["judge"], flush=True)
