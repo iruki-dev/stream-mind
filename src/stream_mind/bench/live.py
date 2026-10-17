@@ -37,18 +37,21 @@ def _norm(s: str) -> str:
     return re.sub(r"[\s.,!?'\"년]", "", s)
 
 
-def run_one(backend, script: dict[str, Any], until: float = 400.0) -> tuple[dict[str, Any], Any]:
+def run_one(backend, script: dict[str, Any], until: float = 400.0,
+            max_tokens: int = 3000) -> tuple[dict[str, Any], Any]:
     names = {"chat": "chat", "calc": "calc", "search": "search"}
     tools = tools_for(script, names)
     mind = Mind(backend, tools, SimClock(), MindConfig(**LIVE_MIND))
     t0 = time.time()
-    mind.run(until=until)
+    # 멈추지 않고 말하거나 생각하는 모델은 토큰 상한에서 끊는다 (그 자체가 결과다: runaway)
+    mind.run(until=until, stop=lambda: mind.stats.think_tokens >= max_tokens)
     chat = next(t for t in tools if isinstance(t, LiveChat))
     search = next((t for t in tools if isinstance(t, Search)), None)
     calc_calls = [c for c in mind.stats.calls if c.call.tool == "calc" and c.status == "executed"]
     res = analyze(script, chat, search, calc_calls)
     res["wall"] = round(time.time() - t0, 1)
     res["think_tokens"] = mind.stats.think_tokens
+    res["runaway"] = mind.stats.think_tokens >= max_tokens
     return res, mind
 
 
@@ -141,6 +144,8 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
                        if by("nudge") else None),
         "spurious_per_script": round(sum(r["spurious"] for r in rows) / max(1, len(rows)), 3),
         "quiet_spurious": rate([{"x": r["spurious"] > 0} for r in by("quiet")], "x"),
+        "runaway": rate(rows, "runaway"),
+        "think_tokens_mean": round(sum(r.get("think_tokens", 0) for r in rows) / max(1, len(rows))),
     }
 
 

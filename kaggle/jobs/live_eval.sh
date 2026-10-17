@@ -5,10 +5,10 @@ export STREAM_MIND_TOKENIZER=hf:Qwen/Qwen3.5-4B
 P=$(dirname $(find $IN -name live_stream.pt | head -1))
 R=$OUT/live; mkdir -p $R
 (CUDA_VISIBLE_DEVICES=1 python -m stream_mind.bench.live --base hf:Qwen/Qwen3.5-4B --scripts $P/eval_clean.jsonl \
-   --n 50 --out $R/eval_before.json 2>&1 | grep -vE "falling back|Loading|numpy|setattr|return self" > $OUT/eval_before.log) &
+   --n 50 --out $R/eval_before.json 2>&1 | grep --line-buffered -vE "falling back|Loading|numpy|setattr|return self" > $OUT/eval_before.log) &
 CUDA_VISIBLE_DEVICES=0 python -m stream_mind.bench.live --model $P/live_stream.pt --scripts $P/eval_clean.jsonl \
   --n 103 --transcripts 12 --judge Qwen/Qwen3.5-4B --out $R/eval_after.json 2>&1 \
-  | grep -vE "falling back|Loading|numpy|setattr|return self" | tee $OUT/eval_after.log
+  | grep --line-buffered -vE "falling back|Loading|numpy|setattr|return self" | tee $OUT/eval_after.log
 wait
 tail -n 25 $OUT/eval_before.log
 cp $P/live_stream.log $R/ 2>/dev/null
